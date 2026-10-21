@@ -1,0 +1,2434 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>SOUNDPULSE. 声脉 · 声场感知分析室</title>
+<style>
+:root{
+  --bg:#150F18; --card:#221A28; --panel:#2A2132; --line:#463553; --line2:#5C4670; --inset:#1C1521;
+  --t1:#FDF2F8; --t2:#E4D4E8; --t3:#C3A9CC; --t4:#9B84A8;
+  --grad:linear-gradient(135deg,#FF6FB5 0%,#A855F7 100%);
+  --grad-soft:linear-gradient(135deg,rgba(255,111,181,.18),rgba(168,85,247,.07));
+  --grad-line:linear-gradient(90deg,#FF6FB5,#A855F7,#FF6FB5);
+  --l1:#9C7FB0; --l2:#FFC2E8; --l3:#FFFFFF; --l3field:#A8155E;
+  --l1g:linear-gradient(135deg,#AB90BE,#9C7FB0);
+  --l2g:linear-gradient(135deg,#FFD6F0,#FFC2E8);
+  --l3g:linear-gradient(135deg,#FFFFFF,#FFE8F4);
+  --mono:ui-monospace,"SF Mono","Cascadia Mono",Consolas,monospace;
+  /* 字号档位，由 JS 改 --fs */
+  --fs:1;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--t1);
+  font-family:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",-apple-system,"Segoe UI",sans-serif;
+  -webkit-font-smoothing:antialiased;overflow:hidden}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+  -webkit-user-select:none;user-select:none}
+/* 关键修复③：移动端/触屏的内置 300ms 点击延迟 —— 这会让每次点击都"慢半拍"，
+   连点两下还会被识别成双击缩放。全局关掉。 */
+html{touch-action:manipulation;-webkit-text-size-adjust:100%}
+*{-webkit-tap-highlight-color:transparent}
+/* 按下立即有反馈（哪怕处理是异步的），消除"没反应"的错觉 */
+button:active,.space:active,.tpl:active,.grade button:active,.sw .tg:active,
+.helplink:active,.opt:active,.tnode .tcard:active{transform:scale(.985)}
+.space:active{transform:translateX(1px) scale(.99)}
+input,textarea{font-family:inherit}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px}
+::-webkit-scrollbar-track{background:transparent}
+
+.stage{height:100vh;display:flex;align-items:center;justify-content:center;gap:28px;padding:18px;
+  background:
+    radial-gradient(900px 620px at 18% -5%, #3a1a3e 0%, transparent 62%),
+    radial-gradient(720px 520px at 88% 102%, #2a1240 0%, transparent 58%),
+    #0E0912}
+.phone{width:392px;height:820px;max-height:calc(100vh - 36px);background:var(--bg);
+  border-radius:38px;border:1px solid #3d2c4a;position:relative;overflow:hidden;
+  display:flex;flex-direction:column;
+  box-shadow:0 40px 110px -30px #000,0 0 0 8px #0a0710 inset,0 0 70px -18px rgba(168,85,247,.35)}
+.notch{height:26px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;
+  padding:0 22px;font-size:calc(10.5px * var(--fs));color:var(--t3);font-variant-numeric:tabular-nums}
+.notch .st{display:flex;gap:5px;align-items:center}
+.notch .dot{width:5px;height:5px;border-radius:50%;background:var(--l1);transition:.3s}
+
+.apphead{flex-shrink:0;padding:calc(6px * var(--fs)) 22px calc(14px * var(--fs));display:flex;align-items:flex-start;gap:10px}
+.brand .n{font-size:calc(22px * var(--fs));font-weight:800;letter-spacing:-.5px;line-height:1.1;
+  background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.brand .s{font-size:calc(9.5px * var(--fs));letter-spacing:.32em;color:var(--t3);margin-top:4px;font-weight:600}
+.headright{margin-left:auto;text-align:right;font-size:calc(10px * var(--fs));color:var(--t3);line-height:1.7}
+.headright .lv{display:inline-flex;align-items:center;gap:4px;margin-top:3px;
+  padding:2px 8px;border-radius:20px;background:rgba(156,127,176,.16);
+  border:1px solid rgba(156,127,176,.34);transition:.3s}
+.headright .lv i{width:5px;height:5px;border-radius:50%;background:var(--l1);display:block;transition:.3s}
+
+.body{flex:1;overflow-y:auto;overflow-x:hidden;padding:0 22px 96px;position:relative}
+.view{display:none;animation:in .3s cubic-bezier(.22,.8,.3,1)}
+.view.on{display:block}
+@keyframes in{from{opacity:0;transform:translateY(10px)}}
+
+/* ===== 状态卡 ===== */
+.status{background:linear-gradient(180deg,var(--panel),var(--card));border:1px solid var(--line);
+  border-radius:22px;padding:18px 18px 15px;position:relative;overflow:hidden;margin-bottom:14px}
+.status::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:var(--grad-line);
+  background-size:200% 100%;animation:flow 4s linear infinite}
+@keyframes flow{to{background-position:200% 0}}
+.status .row1{display:flex;align-items:flex-start}
+.status .lab{font-size:calc(9.5px * var(--fs));letter-spacing:.28em;color:var(--t3);font-weight:700}
+.status .state{font-size:calc(30px * var(--fs));font-weight:800;letter-spacing:-.8px;line-height:1.15;margin-top:5px;
+  background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.status .big{margin-left:auto;text-align:right}
+.status .big .num{font-family:var(--mono);font-size:calc(30px * var(--fs));font-weight:700;color:var(--t1);line-height:1}
+.status .big .cl{font-size:calc(9.5px * var(--fs));color:var(--t3);margin-top:4px}
+.status .hr{height:1px;background:var(--line);margin:14px 0 11px}
+.status .foot{display:flex;align-items:center;gap:12px;font-size:calc(10.5px * var(--fs));color:var(--t3);flex-wrap:wrap}
+.status .foot .k{display:flex;align-items:center;gap:5px}
+.status .foot .k b{color:var(--t2);font-family:var(--mono);font-weight:600}
+
+/* 关键指标条：漏听 vs 事件数 */
+.vital{display:flex;gap:8px;margin-bottom:14px}
+.vital .v{flex:1;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:11px 12px}
+.vital .v .k{font-size:calc(8.5px * var(--fs));letter-spacing:.16em;color:var(--t4);font-weight:800}
+.vital .v .n{font-family:var(--mono);font-size:calc(21px * var(--fs));font-weight:800;color:var(--t2);margin-top:4px}
+.vital .v .n small{font-size:calc(10px * var(--fs));color:var(--t4);font-weight:600}
+.vital .v .d{font-size:calc(9.5px * var(--fs));color:var(--t4);margin-top:3px;line-height:1.4}
+.vital .v.ok{border-color:rgba(255,194,232,.4);background:rgba(255,194,232,.06)}
+.vital .v.ok .n{color:var(--l2)}
+
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.pane{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:13px 13px 12px;min-height:148px}
+.pane .h{font-size:calc(8.5px * var(--fs));letter-spacing:.22em;color:var(--t3);font-weight:800}
+.pane .hs{font-size:calc(10px * var(--fs));color:var(--t4);margin-top:3px;line-height:1.4}
+.pane .ct{margin-top:11px}
+.stat-row{display:flex;align-items:center;gap:7px;margin-bottom:7px;font-size:calc(10px * var(--fs))}
+.stat-row .n{color:var(--t3);min-width:34px}
+.stat-row .bar{flex:1;height:4px;background:var(--inset);border-radius:2px;overflow:hidden}
+.stat-row .bar i{display:block;height:100%;border-radius:2px}
+.stat-row .v{font-family:var(--mono);color:var(--t2);min-width:16px;text-align:right;font-weight:600}
+
+/* 关键修复②：原来 @keyframes wv 动画的是 height，26 根柱子 = 每帧 26 次布局重排，
+   持续 60fps。在低端设备 / 集显上就是「点按延迟」。
+   改成 scaleY（走合成层，零重排）。 */
+@keyframes wv{from{transform:scaleY(.18)}to{transform:scaleY(1)}}
+.wave{display:flex;align-items:center;gap:2px;height:44px;margin-bottom:9px;contain:layout style}
+.wave i{flex:1;height:100%;background:var(--grad);border-radius:2px;opacity:.8;
+  animation:wv 1.1s ease-in-out infinite alternate;min-height:2px;
+  transform-origin:center center;will-change:transform}
+@keyframes wv{from{height:12%}to{height:80%}}
+.stream{display:flex;flex-direction:column;gap:6px}
+.sitem{display:flex;align-items:center;gap:7px;font-size:calc(10px * var(--fs));color:var(--t2);
+  animation:slideIn .4s ease-out}
+@keyframes slideIn{from{opacity:0;transform:translateY(8px)}}
+.sitem .t{font-family:var(--mono);color:var(--t4);font-size:calc(9.5px * var(--fs));min-width:34px}
+.sitem .d{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.sitem .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.spaces{display:flex;flex-direction:column;gap:8px}
+.space{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);
+  border-radius:16px;padding:13px 15px;transition:.18s;cursor:pointer}
+.space:hover{border-color:var(--line2);background:var(--panel);transform:translateX(2px)}
+.space.off{opacity:.4;cursor:not-allowed}
+.space.off:hover{border-color:var(--line);background:var(--card);transform:none}
+.space .ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;
+  background:var(--grad-soft);border:1px solid rgba(255,111,181,.26);flex-shrink:0}
+.space .ic svg{width:17px;height:17px;stroke:#FF9ED2;stroke-width:1.6;fill:none}
+.space.off .ic svg{stroke:var(--t4)}
+.space .tx{flex:1;min-width:0}
+.space .tx .nm{font-size:calc(13.5px * var(--fs));font-weight:700}
+.space .tx .id{font-size:calc(9px * var(--fs));letter-spacing:.2em;color:var(--t4);margin-top:2px}
+.space .ch{margin-left:auto;color:var(--t4);font-size:16px}
+
+/* ===== 居家 ===== */
+.roomhead{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.back{width:30px;height:30px;border-radius:9px;border:1px solid var(--line);
+  display:grid;place-items:center;color:var(--t2);flex-shrink:0;transition:.16s}
+.back:hover{background:var(--panel);border-color:var(--line2)}
+.roomhead .tx .nm{font-size:calc(17px * var(--fs));font-weight:800;letter-spacing:-.3px}
+.roomhead .tx .id{font-size:calc(9px * var(--fs));letter-spacing:.22em;color:var(--t4);margin-top:2px}
+.modes{margin-left:auto;display:flex;gap:3px;background:var(--inset);padding:3px;border-radius:10px;
+  border:1px solid var(--line)}
+.modes button{font-size:calc(10px * var(--fs));padding:5px 9px;border-radius:7px;color:var(--t3);transition:.15s}
+.modes button.on{background:var(--grad);color:#2A0A1E;font-weight:800}
+
+.floor{background:var(--card);border:1px solid var(--line);border-radius:18px;
+  padding:12px;margin-bottom:8px;position:relative;overflow:hidden}
+#scene3d{display:block;width:100%;height:262px;border-radius:12px;
+  background:radial-gradient(circle at 50% 40%, #241A32 0%, #140E1A 70%);
+  cursor:grab;touch-action:none}
+#scene3d:active{cursor:grabbing}
+.camhint{position:absolute;left:20px;bottom:18px;font-size:9px;letter-spacing:.06em;
+  color:var(--t4);pointer-events:none;background:rgba(20,14,26,.7);
+  padding:3px 8px;border-radius:6px;border:1px solid var(--line)}
+.floor svg{width:100%;height:auto;display:block}
+.floor .room{stroke:var(--line2);stroke-width:1.2;fill:rgba(255,255,255,.005);transition:.25s;
+  cursor:pointer;touch-action:manipulation}
+.floor .room:hover{fill:rgba(255,111,181,.07);stroke:#FF9ED2}
+.floor .room.hot{fill:rgba(255,194,232,.11);stroke:var(--l2)}
+.floor .rl{fill:var(--t4);font-size:7.5px;font-family:"PingFang SC",sans-serif;letter-spacing:.1em;
+  pointer-events:none;transition:.2s}
+.floor .rl.hot{fill:#fff;font-weight:700}
+/* 关键修复①：波纹/装饰点绝不能吞掉房间的点击 */
+#rippleLayer{pointer-events:none}
+#rippleLayer *{pointer-events:none}
+.floor svg > circle{pointer-events:none}
+@keyframes rip{0%{r:3;opacity:.95}100%{r:30;opacity:0}}
+@keyframes ripBig{0%{r:3;opacity:.95}100%{r:42;opacity:0}}
+.rip{animation:rip 1.9s ease-out forwards}
+.ripB{animation:ripBig 2.3s ease-out forwards}
+@keyframes dotp{0%{opacity:1}50%{opacity:.35}100%{opacity:1}}
+.ripDot{animation:dotp .55s ease-in-out infinite}
+/* 方向指示（新） */
+.dirArrow{transition:.3s}
+
+.floorhint{font-size:calc(9.5px * var(--fs));color:var(--t4);text-align:center;margin-bottom:10px}
+.floorhint b{color:#FF9ED2}
+
+.pip{position:absolute;right:12px;bottom:12px;width:92px;background:rgba(28,21,33,.95);
+  border:1px solid var(--line2);border-radius:10px;padding:7px 8px}
+.pip .h{font-size:7.5px;letter-spacing:.18em;color:var(--t4);font-weight:700;display:flex;align-items:center;gap:4px}
+.pip .h i{width:4px;height:4px;border-radius:50%;background:var(--l1);display:block}
+.pip .h i.on{background:#FF6FB5;animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.3}}
+.pip .mins{display:flex;align-items:center;gap:1.5px;height:22px;margin-top:5px}
+.pip .mins i{flex:1;background:#FF6FB5;border-radius:1px;opacity:.8;min-height:1px}
+
+/* 实时字幕（新） */
+.subs{background:linear-gradient(180deg,rgba(42,33,50,.96),rgba(34,26,40,.96));
+  border:1px solid var(--line2);border-radius:14px;padding:11px 13px;margin-bottom:10px;
+  transition:.2s;position:relative;overflow:hidden}
+.subs::before{content:"";position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--grad)}
+.subs .hd{display:flex;align-items:center;gap:6px;font-size:calc(8.5px * var(--fs));
+  letter-spacing:.16em;color:var(--t4);font-weight:800;margin-bottom:7px}
+.subs .hd i{width:5px;height:5px;border-radius:50%;background:#FF6FB5;
+  animation:blink 1.2s infinite;display:block}
+.subs .line{font-size:calc(13px * var(--fs));color:var(--t1);line-height:1.55;min-height:1.55em}
+.subs .line .who{color:#FF9ED2;font-weight:700;margin-right:6px}
+.subs .line .kw{background:rgba(255,111,181,.24);border-radius:3px;padding:0 3px;font-weight:700}
+.subs .prev{font-size:calc(10.5px * var(--fs));color:var(--t4);margin-top:6px;line-height:1.5}
+.subs.off{border-color:var(--line)}
+.subs.off .line{color:var(--t4);font-size:calc(11px * var(--fs))}
+.subs.off::before{background:var(--line)}
+
+/* 名字检测（新） */
+.namecard{display:flex;align-items:center;gap:10px;background:var(--card);
+  border:1px solid rgba(255,194,232,.4);border-radius:14px;padding:11px 13px;margin-bottom:10px}
+.namecard .ic{width:32px;height:32px;border-radius:50%;background:rgba(255,194,232,.16);
+  border:1px solid rgba(255,194,232,.4);display:grid;place-items:center;flex-shrink:0}
+.namecard .tx{flex:1;min-width:0}
+.namecard .nm{font-size:calc(12.5px * var(--fs));font-weight:750;color:var(--t1)}
+.namecard .s{font-size:calc(9.5px * var(--fs));color:var(--t3);margin-top:2px}
+.namecard .tag{font-size:calc(8.5px * var(--fs));padding:2px 7px;border-radius:20px;font-weight:800;
+  background:rgba(255,194,232,.2);color:#FFC2E8;border:1px solid rgba(255,194,232,.35);flex-shrink:0}
+
+.evrow{display:flex;gap:10px;margin-bottom:12px}
+.evbox{flex:1;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 13px}
+.evbox .k{font-size:calc(8.5px * var(--fs));letter-spacing:.2em;color:var(--t4);font-weight:700}
+.evbox .v{font-size:calc(14px * var(--fs));font-weight:750;margin-top:5px;line-height:1.3}
+.evbox .s{font-size:calc(10px * var(--fs));color:var(--t3);margin-top:3px;font-family:var(--mono)}
+
+.devices{display:flex;gap:7px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px}
+.dev{flex-shrink:0;background:var(--card);border:1px solid var(--line);border-radius:11px;
+  padding:8px 11px;min-width:92px}
+.dev .n{font-size:calc(10.5px * var(--fs));font-weight:650;display:flex;align-items:center;gap:4px}
+.dev .n i{width:5px;height:5px;border-radius:50%;background:var(--l1);display:block;flex-shrink:0}
+.dev .n i.off{background:var(--t4)}
+.dev .m{font-size:calc(9px * var(--fs));color:var(--t4);margin-top:4px;font-family:var(--mono);
+  display:flex;justify-content:space-between}
+
+/* ===== 档案 ===== */
+.archhead{margin-bottom:14px}
+.archhead .e{font-size:calc(9.5px * var(--fs));letter-spacing:.34em;color:var(--t3);font-weight:800}
+.archhead .n{font-size:calc(24px * var(--fs));font-weight:800;letter-spacing:-.5px;margin-top:4px;
+  background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.archhead .s{font-size:calc(10.5px * var(--fs));color:var(--t4);margin-top:4px}
+.filters{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.filters button{font-size:calc(10px * var(--fs));padding:5px 11px;border-radius:20px;
+  border:1px solid var(--line);color:var(--t3);transition:.15s}
+.filters button.on{background:var(--grad-soft);border-color:rgba(255,111,181,.55);color:#FFC2E8;font-weight:700}
+
+.tl{position:relative;padding-left:24px}
+.tl::before{content:"";position:absolute;left:7px;top:6px;bottom:6px;width:1px;
+  background:linear-gradient(180deg,#FF6FB5,#A855F7,transparent)}
+.tnode{position:relative;margin-bottom:12px}
+.tnode .dot{position:absolute;left:-24px;top:14px;width:9px;height:9px;border-radius:50%;border:2px solid var(--bg)}
+.tnode .tcard{background:var(--card);border:1px solid var(--line);border-left:2px solid;
+  border-radius:13px;padding:12px 13px;cursor:pointer;transition:.16s}
+.tnode .tcard:hover{background:var(--panel)}
+.tnode .t{font-family:var(--mono);font-size:calc(9.5px * var(--fs));color:var(--t4)}
+.tnode .nm{font-size:calc(13.5px * var(--fs));font-weight:750;margin-top:4px;
+  display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.tnode .meta{font-size:calc(10px * var(--fs));color:var(--t3);margin-top:5px;display:flex;gap:10px;flex-wrap:wrap}
+.tnode .more{display:none;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);
+  font-size:calc(10.5px * var(--fs));color:var(--t3);line-height:1.7}
+.tnode.open .more{display:block}
+.tnode .more b{color:var(--t2)}
+.tnode .wf{display:flex;align-items:center;gap:1.5px;height:18px;margin-top:8px}
+.tnode .wf i{flex:1;border-radius:1px;opacity:.7;min-height:1px}
+.tnode .fbrow{display:flex;gap:6px;margin-top:9px}
+.tnode .fbrow button{font-size:calc(9.5px * var(--fs));padding:5px 10px;border-radius:8px;
+  border:1px solid var(--line);color:var(--t3);transition:.15s}
+.tnode .fbrow button:hover{border-color:var(--line2);color:var(--t2)}
+.tnode .fbrow button.act{background:rgba(255,194,232,.16);border-color:rgba(255,194,232,.5);color:#FFC2E8;font-weight:700}
+.tnode.misread .nm{text-decoration:line-through;opacity:.6}
+
+/* ===== 触觉 ===== */
+.tachead{margin-bottom:16px}
+.tachead .e{font-size:calc(9.5px * var(--fs));letter-spacing:.34em;color:var(--t3);font-weight:800}
+.tachead .n{font-size:calc(24px * var(--fs));font-weight:800;letter-spacing:-.5px;margin-top:4px;
+  background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.tachead .s{font-size:calc(10.5px * var(--fs));color:var(--t4);margin-top:4px}
+
+.bandwrap{display:flex;flex-direction:column;align-items:center;padding:14px 0 18px}
+.band{width:132px;height:132px;border-radius:50%;position:relative;display:grid;place-items:center;
+  background:radial-gradient(circle at 50% 38%, #3a2545, #1a1220 72%);
+  border:1px solid var(--line2);transition:.2s}
+.band::before{content:"";position:absolute;inset:9px;border-radius:50%;
+  background:conic-gradient(from 0deg,transparent 0deg,rgba(255,111,181,.6) 40deg,transparent 95deg);
+  opacity:.6;animation:spin 3.4s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.band::after{content:"";position:absolute;inset:15px;border-radius:50%;border:1px solid rgba(255,111,181,.24)}
+.band .scr{width:78px;height:78px;border-radius:50%;background:#120C18;border:1px solid var(--line);
+  display:grid;place-items:center;position:relative;z-index:2}
+.band .scr .g{font-size:8px;letter-spacing:.16em;color:var(--t4);font-weight:700}
+.band .scr .cur{font-size:11px;font-weight:800;margin-top:2px;color:#FF9ED2;text-align:center;line-height:1.2}
+@keyframes bandvib{0%,100%{transform:translate(0,0)}25%{transform:translate(-2px,1px)}75%{transform:translate(2px,-1px)}}
+.band.l1vib{animation:bandvib .55s ease-in-out 2}
+.band.l2vib{animation:bandvib .11s linear 9}
+.band.l3vib{animation:bandvib .065s linear 36}
+
+.previewbtn{margin-top:14px;padding:11px 26px;border-radius:12px;background:var(--grad);
+  color:#2A0A1E;font-weight:800;font-size:calc(12.5px * var(--fs));
+  box-shadow:0 10px 26px -10px rgba(255,111,181,.8);transition:.15s}
+.previewbtn:active{transform:scale(.97)}
+
+/* 唤醒卡（新） */
+.wake{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
+.wake .h{font-size:calc(8.5px * var(--fs));letter-spacing:.2em;color:var(--t4);font-weight:800;margin-bottom:4px}
+.wake .sub{font-size:calc(10.5px * var(--fs));color:var(--t3);line-height:1.6;margin-bottom:11px}
+.wake .row{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)}
+.wake .row .nm{flex:1;font-size:calc(11.5px * var(--fs));color:var(--t2)}
+.wake .row .st{font-size:calc(9px * var(--fs));padding:2px 8px;border-radius:20px;
+  background:rgba(255,194,232,.16);color:#FFC2E8;border:1px solid rgba(255,194,232,.32);font-weight:700}
+.wake .row .st.off{background:var(--inset);color:var(--t4);border-color:var(--line)}
+.waketest{width:100%;margin-top:11px;padding:11px;border-radius:11px;border:1px solid rgba(255,111,181,.45);
+  background:var(--grad-soft);color:#FFC2E8;font-weight:800;font-size:calc(11.5px * var(--fs));transition:.15s}
+.waketest:active{transform:scale(.98)}
+
+.leditor{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
+.leditor .h{font-size:calc(8.5px * var(--fs));letter-spacing:.2em;color:var(--t4);font-weight:800;margin-bottom:10px}
+.lrow{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+.lrow .nm{font-size:calc(10px * var(--fs));color:var(--t3);min-width:44px}
+.lrow .track{flex:1;height:26px;background:var(--inset);border-radius:7px;position:relative;
+  overflow:hidden;border:1px solid var(--line)}
+.lrow .track .seg{position:absolute;top:3px;bottom:3px;border-radius:4px;background:var(--grad)}
+.lrow .track .seg.s1{background:var(--l1g)}
+.lrow .track .seg.s2{background:var(--l2g)}
+.lrow .track .seg.s3{background:var(--l3g)}
+.lrow .ms{font-family:var(--mono);font-size:calc(9px * var(--fs));color:var(--t4);min-width:38px;text-align:right}
+
+.templates{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:14px}
+.tpl{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:10px 6px;
+  text-align:center;transition:.16s;cursor:pointer}
+.tpl.on{border-color:rgba(255,111,181,.7);background:var(--grad-soft)}
+.tpl .nm{font-size:calc(10px * var(--fs));font-weight:700;color:var(--t2)}
+.tpl.on .nm{color:#FFC2E8}
+.tpl .d{font-size:calc(8px * var(--fs));color:var(--t4);margin-top:3px}
+
+.note-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px;
+  font-size:calc(10.5px * var(--fs));color:var(--t3);line-height:1.75}
+.note-card b{color:var(--t2)}
+
+/* ===== 设置 / 无障碍中心 ===== */
+.sethead{margin-bottom:16px}
+.sethead .e{font-size:calc(9.5px * var(--fs));letter-spacing:.34em;color:var(--t3);font-weight:800}
+.sethead .n{font-size:calc(24px * var(--fs));font-weight:800;letter-spacing:-.5px;margin-top:4px;
+  background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sethead .s{font-size:calc(10.5px * var(--fs));color:var(--t4);margin-top:4px}
+
+.sect{margin-bottom:14px}
+.sect .t{font-size:calc(9px * var(--fs));letter-spacing:.24em;color:var(--t4);font-weight:800;margin-bottom:8px}
+.grade{display:flex;flex-direction:column;gap:7px}
+.grade button{display:flex;align-items:center;gap:11px;background:var(--card);border:1px solid var(--line);
+  border-radius:13px;padding:11px 13px;text-align:left;transition:.16s}
+.grade button:hover{border-color:var(--line2)}
+.grade button.on{border-color:rgba(255,111,181,.6);background:var(--grad-soft)}
+.grade .bl{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;flex-shrink:0;
+  font-size:calc(11px * var(--fs));font-weight:800;background:var(--inset);color:var(--t3)}
+.grade button.on .bl{background:var(--grad);color:#2A0A1E}
+.grade .tx{flex:1;min-width:0}
+.grade .nm{font-size:calc(12px * var(--fs));font-weight:700;color:var(--t2)}
+.grade .d{font-size:calc(9.5px * var(--fs));color:var(--t4);margin-top:2px}
+.grade .ck{color:#FF9ED2;font-size:calc(13px * var(--fs));opacity:0}
+.grade button.on .ck{opacity:1}
+
+.fsrow{display:flex;gap:7px}
+.fsrow button{flex:1;padding:11px;border-radius:11px;border:1px solid var(--line);background:var(--card);
+  color:var(--t3);font-weight:700;transition:.15s}
+.fsrow button.on{border-color:rgba(255,111,181,.6);background:var(--grad-soft);color:#FFC2E8}
+.fsrow button:nth-child(1){font-size:11px}
+.fsrow button:nth-child(2){font-size:13px}
+.fsrow button:nth-child(3){font-size:15px}
+
+.sw{display:flex;align-items:center;gap:11px;padding:11px 13px;background:var(--card);
+  border:1px solid var(--line);border-radius:13px;margin-bottom:7px}
+.sw .tx{flex:1;min-width:0}
+.sw .nm{font-size:calc(11.5px * var(--fs));font-weight:700;color:var(--t2)}
+.sw .d{font-size:calc(9.5px * var(--fs));color:var(--t4);margin-top:2px;line-height:1.4}
+.sw .tg{width:38px;height:22px;border-radius:20px;background:var(--inset);border:1px solid var(--line);
+  position:relative;flex-shrink:0;transition:.2s;cursor:pointer}
+.sw .tg::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;
+  background:var(--t4);transition:.2s}
+.sw .tg.on{background:var(--grad);border-color:transparent}
+.sw .tg.on::after{left:18px;background:#fff}
+
+.helplink{display:flex;align-items:center;gap:11px;padding:12px 13px;background:var(--card);
+  border:1px solid var(--line);border-radius:13px;margin-bottom:7px;cursor:pointer;transition:.15s}
+.helplink:hover{border-color:var(--line2);background:var(--panel)}
+.helplink .tx{flex:1}
+.helplink .nm{font-size:calc(11.5px * var(--fs));font-weight:700;color:var(--t2)}
+.helplink .d{font-size:calc(9.5px * var(--fs));color:var(--t4);margin-top:2px}
+.helplink .ch{color:var(--t4)}
+
+/* ===== 底部导航 5 项 ===== */
+.navbar{position:absolute;left:0;right:0;bottom:0;height:74px;background:rgba(21,15,24,.985);
+  border-top:1px solid var(--line);display:flex;align-items:center;
+  padding:0 6px 6px;z-index:40}
+.navbar button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+  padding:9px 0 3px;color:var(--t4);transition:.16s;position:relative}
+.navbar button svg{width:19px;height:19px;stroke:currentColor;stroke-width:1.7;fill:none;transition:.16s}
+.navbar button .lb{font-size:calc(8.5px * var(--fs));letter-spacing:.02em;white-space:nowrap}
+.navbar button.on{color:#FF9ED2}
+.navbar button.on svg{stroke:#FF9ED2}
+.navbar button.on::after{content:"";position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);
+  width:16px;height:2px;border-radius:2px;background:var(--grad)}
+
+/* ===== 弹窗 ===== */
+.alertL1{position:absolute;left:14px;right:14px;bottom:86px;
+  background:linear-gradient(180deg,var(--panel),var(--card));
+  border:1px solid var(--line);border-left:3px solid var(--l1);border-radius:18px;
+  padding:15px 16px;display:none;z-index:90;box-shadow:0 14px 38px -12px #000}
+.alertL1.show{display:block;animation:up .32s cubic-bezier(.22,.9,.3,1)}
+@keyframes up{from{opacity:0;transform:translateY(26px)}}
+.alertL1 .top{display:flex;align-items:center;gap:9px}
+.alertL1 .ic{width:32px;height:32px;border-radius:10px;background:rgba(156,127,176,.18);
+  display:grid;place-items:center;flex-shrink:0}
+.alertL1 .nm{font-size:calc(14.5px * var(--fs));font-weight:750}
+.alertL1 .loc{font-size:calc(10.5px * var(--fs));color:var(--t3);margin-top:2px;font-family:var(--mono)}
+.alertL1 .act{margin-top:11px;display:flex;gap:8px}
+.alertL1 .act button{flex:1;font-size:calc(11.5px * var(--fs));padding:9px;border-radius:9px;
+  border:1px solid var(--line);color:var(--t2);transition:.15s}
+.alertL1 .act button.pri{background:var(--grad);color:#2A0A1E;font-weight:800;border:none}
+
+.alertL2{position:absolute;left:26px;right:26px;top:50%;transform:translateY(-50%);
+  background:linear-gradient(180deg,var(--panel),var(--card));
+  border:1px solid rgba(255,194,232,.55);border-radius:22px;padding:22px 20px;display:none;z-index:95;
+  box-shadow:0 22px 60px -18px #000,0 0 46px -14px rgba(255,194,232,.5)}
+.alertL2.show{display:block;animation:pop .3s cubic-bezier(.22,.9,.3,1)}
+@keyframes pop{from{opacity:0;transform:translateY(-50%) scale(.94)}}
+.alertL2 .ic{width:48px;height:48px;border-radius:15px;background:rgba(255,194,232,.15);
+  border:1px solid rgba(255,194,232,.4);display:grid;place-items:center;margin:0 auto 13px}
+.alertL2 .nm{font-size:calc(19px * var(--fs));font-weight:800;text-align:center;letter-spacing:-.3px}
+.alertL2 .loc{font-size:calc(11px * var(--fs));color:var(--t3);text-align:center;margin-top:5px;font-family:var(--mono)}
+.alertL2 .desc{font-size:calc(11.5px * var(--fs));color:var(--t3);text-align:center;margin-top:11px;
+  line-height:1.6;padding:9px;background:var(--inset);border-radius:9px}
+.alertL2 .act{display:flex;gap:8px;margin-top:14px}
+.alertL2 .act button{flex:1;font-size:calc(12px * var(--fs));padding:11px;border-radius:10px;
+  border:1px solid var(--line);color:var(--t2);transition:.15s}
+.alertL2 .act button.pri{background:var(--grad);color:#2A0A1E;font-weight:800;border:none}
+
+/* L3：含升级阶梯（新） */
+.alertL3{position:absolute;inset:0;z-index:110;display:none;flex-direction:column;align-items:center;
+  justify-content:center;padding:26px;
+  background:radial-gradient(circle at 50% 42%, #C4186E 0%, #7A0F45 44%, #150F18 100%)}
+.alertL3.show{display:flex;animation:l3in .22s}
+@keyframes l3in{from{opacity:0}}
+.alertL3 .ring{position:absolute;width:190px;height:190px;border-radius:50%;
+  border:2px solid rgba(255,255,255,.42);animation:l3ring 1.6s ease-out infinite}
+.alertL3 .ring:nth-of-type(2){animation-delay:.55s}
+@keyframes l3ring{0%{transform:scale(.55);opacity:.85}100%{transform:scale(1.58);opacity:0}}
+.alertL3 .ic{width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,.15);
+  border:2px solid #fff;display:grid;place-items:center;position:relative;z-index:2;
+  animation:l3pulse .7s ease-in-out infinite}
+@keyframes l3pulse{50%{transform:scale(1.07);box-shadow:0 0 50px rgba(255,255,255,.6)}}
+.alertL3 .nm{font-size:calc(33px * var(--fs));font-weight:900;color:#fff;margin-top:22px;letter-spacing:1.5px;
+  position:relative;z-index:2;text-shadow:0 2px 22px rgba(0,0,0,.45)}
+.alertL3 .sub{font-size:calc(13px * var(--fs));color:rgba(255,255,255,.95);margin-top:8px;
+  position:relative;z-index:2}
+.alertL3 .loc{font-family:var(--mono);font-size:calc(11px * var(--fs));color:rgba(255,255,255,.8);
+  margin-top:5px;position:relative;z-index:2}
+/* 升级阶梯 */
+.escalate{width:100%;max-width:290px;margin-top:20px;position:relative;z-index:2}
+.esc-step{display:flex;align-items:center;gap:8px;font-size:calc(10px * var(--fs));
+  color:rgba(255,255,255,.55);padding:5px 0;transition:.3s}
+.esc-step .d{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.3);flex-shrink:0;transition:.3s}
+.esc-step .tm{font-family:var(--mono);min-width:38px;opacity:.8}
+.esc-step.done{color:rgba(255,255,255,.92)}
+.esc-step.done .d{background:#fff;box-shadow:0 0 8px #fff}
+.esc-step.active{color:#fff;font-weight:800}
+.esc-step.active .d{background:#fff;animation:blink .6s infinite}
+.alertL3 .act{display:flex;flex-direction:column;gap:9px;width:100%;max-width:290px;margin-top:16px;
+  position:relative;z-index:2}
+.alertL3 .act button{padding:14px;border-radius:13px;font-size:calc(14px * var(--fs));font-weight:800;
+  border:2px solid #fff;color:#fff;background:rgba(255,255,255,.1);transition:.15s}
+.alertL3 .act button.solid{background:#fff;color:#A8155E;border-color:#fff}
+
+/* ===== 名字检测浮层（新） ===== */
+.nameToast{position:absolute;left:16px;right:16px;top:64px;z-index:120;display:none;
+  background:linear-gradient(135deg,rgba(255,111,181,.97),rgba(168,85,247,.97));
+  border-radius:16px;padding:14px 16px;box-shadow:0 18px 50px -14px rgba(255,111,181,.85)}
+.nameToast.show{display:block;animation:ntIn .34s cubic-bezier(.22,.9,.3,1)}
+@keyframes ntIn{from{opacity:0;transform:translateY(-16px)}}
+.nameToast .t1{font-size:calc(9px * var(--fs));letter-spacing:.24em;color:rgba(255,255,255,.85);font-weight:800}
+.nameToast .t2{font-size:calc(17px * var(--fs));font-weight:850;color:#fff;margin-top:5px;line-height:1.3}
+.nameToast .t3{font-size:calc(10.5px * var(--fs));color:rgba(255,255,255,.9);margin-top:5px;line-height:1.5}
+
+/* ===== 听障卡（新） ===== */
+.cardOverlay{position:absolute;inset:0;z-index:140;display:none;align-items:center;justify-content:center;
+  padding:24px;background:rgba(10,7,12,.93)}
+.cardOverlay.show{display:flex;animation:fade .22s}
+@keyframes fade{from{opacity:0}}
+.deafcard{width:100%;background:linear-gradient(160deg,#2A2132,#1C1521);
+  border:2px solid rgba(255,111,181,.5);border-radius:22px;padding:22px 20px;
+  box-shadow:0 26px 70px -20px #000,0 0 60px -20px rgba(255,111,181,.5)}
+.deafcard .brand{font-size:calc(9px * var(--fs));letter-spacing:.3em;color:var(--t3);font-weight:800;
+  display:flex;align-items:center;gap:7px}
+.deafcard .brand i{width:16px;height:2px;background:var(--grad);display:block}
+.deafcard .big{font-size:calc(24px * var(--fs));font-weight:900;color:#fff;margin-top:12px;line-height:1.3;
+  letter-spacing:-.3px}
+.deafcard .big em{font-style:normal;color:#FF9ED2}
+.deafcard .rows{margin-top:16px}
+.deafcard .r{display:flex;gap:9px;padding:9px 0;border-top:1px solid var(--line);
+  font-size:calc(11.5px * var(--fs));color:var(--t2);line-height:1.55}
+.deafcard .r .n{font-family:var(--mono);color:#FF9ED2;font-weight:800;flex-shrink:0;min-width:14px}
+.deafcard .foot{display:flex;gap:8px;margin-top:18px}
+.deafcard .foot button{flex:1;padding:12px;border-radius:11px;font-size:calc(12px * var(--fs));font-weight:800}
+.deafcard .foot .c{background:var(--grad);color:#2A0A1E}
+.deafcard .foot .o{border:1px solid var(--line2);color:var(--t2)}
+
+/* ===== 首次向导（新） ===== */
+.onboard{position:absolute;inset:0;z-index:200;display:none;flex-direction:column;
+  background:linear-gradient(180deg,#1C1521,#150F18);padding:44px 26px 26px}
+.onboard.show{display:flex;animation:fade .3s}
+.onboard .step{font-size:calc(9px * var(--fs));letter-spacing:.3em;color:var(--t4);font-weight:800}
+.onboard h2{font-size:calc(23px * var(--fs));font-weight:850;line-height:1.32;margin-top:14px;
+  letter-spacing:-.4px}
+.onboard h2 em{font-style:normal;
+  background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.onboard .lead{font-size:calc(12px * var(--fs));color:var(--t3);line-height:1.75;margin-top:12px}
+.onboard .opts{flex:1;overflow-y:auto;margin-top:20px;display:flex;flex-direction:column;gap:9px}
+.opt{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:14px 15px;
+  text-align:left;transition:.16s}
+.opt:hover{border-color:var(--line2)}
+.opt.on{border-color:rgba(255,111,181,.65);background:var(--grad-soft);
+  box-shadow:0 0 0 1px rgba(255,111,181,.22)}
+.opt .nm{font-size:calc(13.5px * var(--fs));font-weight:800;color:var(--t2);display:flex;align-items:center;gap:7px}
+.opt.on .nm{color:#FFC2E8}
+.opt .ds{font-size:calc(10.5px * var(--fs));color:var(--t4);margin-top:4px;line-height:1.55}
+.opt .ch{margin-top:8px;display:flex;flex-wrap:wrap;gap:5px}
+.opt .ch span{font-size:calc(9px * var(--fs));padding:2px 7px;border-radius:20px;
+  background:var(--inset);color:var(--t3);border:1px solid var(--line)}
+.onboard .nav2{display:flex;gap:9px;margin-top:18px}
+.onboard .nav2 button{flex:1;padding:14px;border-radius:13px;font-size:calc(13px * var(--fs));font-weight:800}
+.onboard .nav2 .p{background:var(--grad);color:#2A0A1E}
+.onboard .nav2 .s{border:1px solid var(--line2);color:var(--t3)}
+
+/* ===== 轻提示 ===== */
+.toast{position:absolute;left:50%;bottom:152px;transform:translateX(-50%) translateY(10px);
+  background:rgba(42,33,50,.97);border:1px solid var(--line2);color:var(--t2);
+  font-size:calc(11px * var(--fs));padding:9px 16px;border-radius:10px;opacity:0;
+  transition:.22s;z-index:300;pointer-events:none;max-width:300px;text-align:center;line-height:1.5;
+  box-shadow:0 10px 30px -10px #000}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ===== 侧栏 ===== */
+.sidepanel{width:262px;flex-shrink:0;display:flex;flex-direction:column;gap:11px;
+  max-height:calc(100vh - 36px);overflow-y:auto}
+.sidepanel .card{background:rgba(34,26,40,.92);border:1px solid var(--line);border-radius:16px;padding:15px}
+.sidepanel .h{font-size:9px;letter-spacing:.3em;color:var(--t3);font-weight:800;margin-bottom:11px}
+.sidepanel button.trig{width:100%;text-align:left;padding:9px 11px;border-radius:10px;
+  border:1px solid var(--line);margin-bottom:6px;font-size:11px;color:var(--t2);
+  display:flex;align-items:center;gap:8px;transition:.15s;background:var(--card)}
+.sidepanel button.trig:hover{background:var(--panel);border-color:var(--line2)}
+.sidepanel button.trig .d{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.sidepanel button.trig .k{margin-left:auto;font-size:8.5px;letter-spacing:.14em;color:var(--t4)}
+.sidepanel .note{font-size:10px;color:var(--t4);line-height:1.7}
+.sidepanel .note b{color:var(--t3)}
+.sidepanel .divider{height:1px;background:var(--line);margin:10px 0}
+
+@media(max-width:1180px){ .sidepanel{display:none} }
+@media(max-width:460px){
+  .stage{padding:0}
+  .phone{width:100%;height:100vh;border-radius:0;border:none;max-height:none;box-shadow:none}
+}
+</style>
+
+<!-- three.js 多源加载：按顺序尝试，第一个成功即用 -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script>
+  if (typeof THREE === 'undefined') {
+    document.write('<script src="https://unpkg.com/three@0.160.0/build/three.min.js"><\/script>');
+  }
+</script>
+<script>
+  if (typeof THREE === 'undefined') {
+    document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"><\/script>');
+  }
+</script>
+
+</head>
+<body>
+
+<div class="stage">
+<div class="phone" id="phone">
+
+  <div class="notch">
+    <span id="clock">21:04</span>
+    <span class="st"><span class="dot" id="notchDot"></span><span id="notchTxt">感知中</span></span>
+  </div>
+
+  <div class="apphead">
+    <div class="brand">
+      <div class="n">SOUNDPULSE<span>.</span></div>
+      <div class="s">声场感知分析室</div>
+    </div>
+    <div class="headright">
+      <div id="modeLine">居家 · 6 台在线</div>
+      <div class="lv" id="lvPill"><i></i><span id="lvPillTxt">等级 低</span></div>
+    </div>
+  </div>
+
+  <div class="body" id="bodyEl">
+
+    <!-- ============ 1 总台 ============ -->
+    <section class="view on" id="v-home">
+      <div class="status">
+        <div class="row1">
+          <div>
+            <div class="lab">今天</div>
+            <div class="state" id="stateTxt">都看到了</div>
+          </div>
+          <div class="big">
+            <div class="num" id="evSeen">3/3</div>
+            <div class="cl">重要的事</div>
+          </div>
+        </div>
+        <div class="hr"></div>
+        <div class="foot">
+          <span class="k">最近 <b id="homeTime">14:32</b></span>
+          <span class="k" id="homeModeTxt">日常模式</span>
+          <span class="k" style="margin-left:auto;color:var(--t4)" id="homeLevel">轻度 · 中文字幕</span>
+        </div>
+      </div>
+
+      <div class="vital">
+        <div class="v ok">
+          <div class="k">漏听率</div>
+          <div class="n" id="missRate">0<small>%</small></div>
+          <div class="d">重要事件漏掉的比例</div>
+        </div>
+        <div class="v">
+          <div class="k">待确认</div>
+          <div class="n" id="pendCount">2</div>
+          <div class="d">不确定的声音</div>
+        </div>
+        <div class="v">
+          <div class="k">今日全部</div>
+          <div class="n" id="evTotal">14</div>
+          <div class="d">含日常提醒</div>
+        </div>
+      </div>
+
+      <div class="duo">
+        <div class="pane">
+          <div class="h">STATIC</div>
+          <div class="hs">声场档案 · 今日</div>
+          <div class="ct">
+            <div class="stat-row"><span class="n">日常</span><span class="bar"><i style="width:62%;background:var(--l1)"></i></span><span class="v" id="s1">9</span></div>
+            <div class="stat-row"><span class="n">关注</span><span class="bar"><i style="width:26%;background:var(--l2)"></i></span><span class="v" id="s2">4</span></div>
+            <div class="stat-row"><span class="n">紧急</span><span class="bar"><i style="width:8%;background:var(--l3field)"></i></span><span class="v" id="s3">1</span></div>
+            <div class="stat-row" style="margin-top:9px"><span class="n">在线</span><span class="bar"><i style="width:100%;background:var(--grad)"></i></span><span class="v">6</span></div>
+          </div>
+        </div>
+        <div class="pane">
+          <div class="h">REAL-TIME</div>
+          <div class="hs">实时声场</div>
+          <div class="ct">
+            <div class="wave" id="wave1"></div>
+            <div class="stream" id="stream1">
+              <div class="sitem"><span class="t">14:31</span><span class="d" style="background:var(--l1)"></span><span class="nm">厨房 · 水开</span></div>
+              <div class="sitem"><span class="t">14:26</span><span class="d" style="background:var(--l2)"></span><span class="nm">门口 · 敲门</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="spaces">
+        <div class="space" data-go="room">
+          <div class="ic"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9.5V21h13V9.5"/><path d="M9.5 21v-5h5v5"/></svg></div>
+          <div class="tx"><div class="nm">居家感知室</div><div class="id">ROOM-HOME 01</div></div>
+          <div class="ch">›</div>
+        </div>
+        <div class="space" data-go="arch">
+          <div class="ic"><svg viewBox="0 0 24 24"><path d="M5 3h11l3 3v15H5z"/><path d="M8.5 9h7M8.5 13h7M8.5 17h4"/></svg></div>
+          <div class="tx"><div class="nm">声场档案卷</div><div class="id">ARCHIVES</div></div>
+          <div class="ch">›</div>
+        </div>
+        <div class="space" data-go="tac">
+          <div class="ic"><svg viewBox="0 0 24 24"><path d="M3 12h3l2-6 3 12 3-9 2 3h5"/></svg></div>
+          <div class="tx"><div class="nm">触觉编码室</div><div class="id">TACTILE CODE</div></div>
+          <div class="ch">›</div>
+        </div>
+        <div class="space" data-go="set">
+          <div class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/></svg></div>
+          <div class="tx"><div class="nm">无障碍中心</div><div class="id">ACCESSIBILITY</div></div>
+          <div class="ch">›</div>
+        </div>
+        <div class="space off" data-soon="出行感知场">
+          <div class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+          <div class="tx"><div class="nm">出行感知场</div><div class="id">ROOM-OUT 02 · 规划中</div></div>
+          <div class="ch">—</div>
+        </div>
+        <div class="space off" data-soon="公共声场站">
+          <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/><circle cx="12" cy="12" r="4"/></svg></div>
+          <div class="tx"><div class="nm">公共声场站</div><div class="id">ROOM-PUBLIC 03 · 规划中</div></div>
+          <div class="ch">—</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 2 居家 ============ -->
+    <section class="view" id="v-room">
+      <div class="roomhead">
+        <button class="back" data-go="home" aria-label="返回">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <div class="tx"><div class="nm">ROOM-HOME <span style="color:var(--t4)">01</span></div>
+        <div class="id">住宅声场 · 实时</div></div>
+        <div class="modes" id="modes">
+          <button class="on" data-mode="day">日常</button>
+          <button data-mode="sleep">睡眠</button>
+          <button data-mode="away">离家</button>
+        </div>
+      </div>
+
+      <!-- 实时字幕 -->
+      <div class="subs" id="subsBox">
+        <div class="hd"><i></i><span id="subsLabel">实时字幕 · 客厅</span></div>
+        <div class="line" id="subsLine"><span class="who">妈妈</span>晚饭在<span class="kw">锅里</span></div>
+        <div class="prev" id="subsPrev">刚才：「你去把窗户关一下」</div>
+      </div>
+
+      <!-- 名字检测 -->
+      <div class="namecard" id="nameCard">
+        <div class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFC2E8" stroke-width="1.9"><path d="M12 2a5 5 0 0 1 5 5v4a5 5 0 0 1-10 0V7a5 5 0 0 1 5-5z"/><path d="M19 11a7 7 0 0 1-14 0"/><path d="M12 18v4"/></svg></div>
+        <div class="tx">
+          <div class="nm" id="nameCardTxt">有人在叫你</div>
+          <div class="s" id="nameCardSub">检测到你的名字 · 客厅方向</div>
+        </div>
+        <div class="tag" id="nameTag">已开启</div>
+      </div>
+
+      <div class="floor">
+        <!-- 3D 立体户型：可拖拽旋转、滚轮缩放、点房间出声波 -->
+        <canvas id="scene3d"></canvas>
+        <!-- 2D 回退层：WebGL 不可用时启用，默认隐藏 -->
+        <svg viewBox="0 0 320 215" id="floorSvg" style="display:none">
+          <rect class="room" id="r-living"  data-room="living"  x="8"   y="8"   width="142" height="112" rx="3"/>
+          <rect class="room" id="r-kitchen" data-room="kitchen" x="152" y="8"   width="80"  height="62"  rx="3"/>
+          <rect class="room" id="r-bed"     data-room="bed"     x="234" y="8"   width="78"  height="62"  rx="3"/>
+          <rect class="room" id="r-entry"   data-room="entry"   x="152" y="72"  width="80"  height="48"  rx="3"/>
+          <rect class="room" id="r-bath"    data-room="bath"    x="234" y="72"  width="78"  height="48"  rx="3"/>
+          <rect class="room" id="r-balcony" data-room="balcony" x="8"   y="122" width="304" height="30"  rx="3"/>
+          <text class="rl" id="l-living"  x="14"  y="21">客厅</text>
+          <text class="rl" id="l-kitchen" x="158" y="21">厨房</text>
+          <text class="rl" id="l-bed"     x="240" y="21">卧室</text>
+          <text class="rl" id="l-entry"   x="158" y="85">玄关</text>
+          <text class="rl" id="l-bath"    x="240" y="85">卫生间</text>
+          <text class="rl" id="l-balcony" x="14"  y="135">阳台</text>
+          <g id="rippleLayer"></g>
+          <circle cx="79"  cy="64"  r="2.4" fill="#FF6FB5" opacity=".55"/>
+          <circle cx="192" cy="39"  r="2.4" fill="#FF6FB5" opacity=".55"/>
+          <circle cx="273" cy="39"  r="2.4" fill="#FF6FB5" opacity=".55"/>
+          <circle cx="192" cy="96"  r="2.4" fill="#FF6FB5" opacity=".55"/>
+          <circle cx="137" cy="137" r="2.4" fill="#FF6FB5" opacity=".55"/>
+        </svg>
+        <div class="pip">
+          <div class="h"><i id="pipDot"></i>实时声像</div>
+          <div class="mins" id="pipWave"></div>
+        </div>
+        <div class="camhint" id="camHint">拖拽旋转 · 滚轮缩放 · 点房间</div>
+      </div>
+      <div class="floorhint">↑ 拖动可旋转 3D 户型，<b>点哪个房间</b>，波纹就出现在哪个房间</div>
+
+      <div class="evrow">
+        <div class="evbox">
+          <div class="k">最近事件</div>
+          <div class="v" id="lastEv">水开</div>
+          <div class="s" id="lastTime">14:31:08</div>
+        </div>
+        <div class="evbox">
+          <div class="k">位置 · 距离</div>
+          <div class="v" id="lastLoc">厨房</div>
+          <div class="s" id="lastDur">L1 · 近</div>
+        </div>
+      </div>
+
+      <div class="devices" id="devList"></div>
+
+      <div style="display:flex;gap:8px">
+        <button class="previewbtn" style="flex:1;margin-top:0;background:var(--l1g);color:#241A2C" data-trig="l1">L1 日常</button>
+        <button class="previewbtn" style="flex:1;margin-top:0;background:var(--l2g);color:#3A1230" data-trig="l2">L2 关注</button>
+      </div>
+      <button class="previewbtn" style="width:100%;margin-top:8px;background:var(--l3g);color:#7A0F45" data-trig="l3">L3 紧急（含升级阶梯）</button>
+      <button class="previewbtn" style="width:100%;margin-top:8px;background:transparent;border:1px solid var(--line2);color:var(--t2);box-shadow:none" data-showcard="1">出示听障卡</button>
+    </section>
+
+    <!-- ============ 3 档案 ============ -->
+    <section class="view" id="v-arch">
+      <div class="archhead">
+        <div class="e">ARCHIVES</div>
+        <div class="n">声场档案卷</div>
+        <div class="s">可追溯 · 可纠正 · 纠正后它会学</div>
+      </div>
+      <div class="filters" id="filters">
+        <button class="on" data-f="all">全部</button>
+        <button data-f="l1">日常</button>
+        <button data-f="l2">关注</button>
+        <button data-f="l3">紧急</button>
+        <button data-f="pend">待确认</button>
+      </div>
+      <div class="tl" id="timeline"></div>
+    </section>
+
+    <!-- ============ 4 触觉 ============ -->
+    <section class="view" id="v-tac">
+      <div class="tachead">
+        <div class="e">TACTILE CODE</div>
+        <div class="n">触觉编码室</div>
+        <div class="s">震动指纹 · 闭眼也能分清</div>
+      </div>
+
+      <div class="bandwrap">
+        <div class="band" id="band">
+          <div class="scr">
+            <div>
+              <div class="g">CURRENT</div>
+              <div class="cur" id="bandName">L2 双短震</div>
+            </div>
+          </div>
+        </div>
+        <button class="previewbtn" id="previewBtn">预览震动</button>
+      </div>
+
+      <div class="leditor">
+        <div class="h">FINGERPRINT · 三档对比</div>
+        <div class="lrow"><span class="nm">L1 日常</span>
+          <span class="track"><span class="seg s1" style="left:4%;width:11%"></span></span>
+          <span class="ms">120ms</span></div>
+        <div class="lrow"><span class="nm">L2 关注</span>
+          <span class="track"><span class="seg s2" style="left:4%;width:9%"></span><span class="seg s2" style="left:24%;width:9%"></span></span>
+          <span class="ms">2×120</span></div>
+        <div class="lrow"><span class="nm">L3 紧急</span>
+          <span class="track"><span class="seg s3" style="left:4%;width:70%"></span></span>
+          <span class="ms">800ms</span></div>
+      </div>
+
+      <!-- 唤醒（新）：听障者不能用闹钟 -->
+      <div class="wake">
+        <div class="h">WAKE · 唤醒（听障者不能用普通闹钟）</div>
+        <div class="sub">闹钟响了你听不见。所以它改用手腕震动和床头频闪，把你叫醒。</div>
+        <div class="row">
+          <span class="nm">振动枕 / 手环强震</span>
+          <span class="st" id="wakeVib">已开启</span>
+        </div>
+        <div class="row">
+          <span class="nm">床头频闪灯</span>
+          <span class="st" id="wakeFlash">已开启</span>
+        </div>
+        <div class="row">
+          <span class="nm">渐进唤醒（提前 10 分钟）</span>
+          <span class="st" id="wakeRamp">已开启</span>
+        </div>
+        <button class="waketest" id="wakeTest">测试唤醒（3 秒）</button>
+      </div>
+
+      <div class="templates" id="tpls">
+        <div class="tpl" data-b="l1"><div class="nm">单短震</div><div class="d">日常类</div></div>
+        <div class="tpl on" data-b="l2"><div class="nm">双短震</div><div class="d">关注类</div></div>
+        <div class="tpl" data-b="l3"><div class="nm">长震</div><div class="d">紧急类</div></div>
+      </div>
+
+      <div class="note-card">
+        <b>为什么触觉比声音更可靠：</b>睡觉、洗澡、戴耳机时，视觉提示是靠不住的。
+        但<b style="color:#FF9ED2">手腕的触觉 24 小时在线</b>，这是唯一不会被"注意力"过滤掉的通道。
+      </div>
+    </section>
+
+    <!-- ============ 5 无障碍中心 ============ -->
+    <section class="view" id="v-set">
+      <div class="sethead">
+        <div class="e">ACCESSIBILITY</div>
+        <div class="n">无障碍中心</div>
+        <div class="s">它按你的听损程度改变自己</div>
+      </div>
+
+      <div class="sect">
+        <div class="t">我的听力档位</div>
+        <div class="grade" id="grades">
+          <button data-g="mild"><span class="bl">轻</span><span class="tx"><span class="nm">轻度听损</span><span class="d">安静环境正常，噪声里听不清辅音</span></span><span class="ck">✓</span></button>
+          <button data-g="moderate"><span class="bl">中</span><span class="tx"><span class="nm">中度听损</span><span class="d">助听器下能对话，但持续听很累</span></span><span class="ck">✓</span></button>
+          <button data-g="severe"><span class="bl">重</span><span class="tx"><span class="nm">重度听损</span><span class="d">只听到巨响，听不清说话</span></span><span class="ck">✓</span></button>
+          <button data-g="profound"><span class="bl">极</span><span class="tx"><span class="nm">极重度 / 全聋</span><span class="d">几乎无听觉，可能以手语为主</span></span><span class="ck">✓</span></button>
+        </div>
+      </div>
+
+      <div class="sect">
+        <div class="t">字号</div>
+        <div class="fsrow" id="fsRow">
+          <button data-fs="0.92">标准</button>
+          <button data-fs="1" class="on">大</button>
+          <button data-fs="1.16">特大</button>
+        </div>
+      </div>
+
+      <div class="sect">
+        <div class="t">通道</div>
+        <div class="sw">
+          <div class="tx"><div class="nm">实时字幕</div><div class="d">语音转文字 + 关键词高亮</div></div>
+          <div class="tg on" data-sw="subs"></div>
+        </div>
+        <div class="sw">
+          <div class="tx"><div class="nm">名字检测</div><div class="d">有人在叫你，哪怕很轻</div></div>
+          <div class="tg on" data-sw="name"></div>
+        </div>
+        <div class="sw">
+          <div class="tx"><div class="nm">图形优先（少用文字）</div><div class="d">给识字困难者：图标 + 颜色，不依赖阅读</div></div>
+          <div class="tg" data-sw="picto"></div>
+        </div>
+        <div class="sw">
+          <div class="tx"><div class="nm">助听器直连</div><div class="d">MFi / ASHA 蓝牙协议，声音直接进助听器</div></div>
+          <div class="tg on" data-sw="ha"></div>
+        </div>
+      </div>
+
+      <div class="sect">
+        <div class="t">需要准备的事</div>
+        <div class="helplink" data-teach="1">
+          <div class="tx"><div class="nm">教我认识我家的声音</div><div class="d" id="teachProgress">已完成 3 / 14</div></div>
+          <div class="ch">›</div>
+        </div>
+        <div class="helplink" data-showcard="1">
+          <div class="tx"><div class="nm">听障卡</div><div class="d">一键出示：我是听障者，请面对我说</div></div>
+          <div class="ch">›</div>
+        </div>
+        <div class="helplink" data-go="tac">
+          <div class="tx"><div class="nm">唤醒设置</div><div class="d">震动 + 频闪代替闹钟</div></div>
+          <div class="ch">›</div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <div class="navbar" id="navbar">
+    <button class="on" data-go="home">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      <span class="lb">总台</span>
+    </button>
+    <button data-go="room">
+      <svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9.5V21h13V9.5"/></svg>
+      <span class="lb">居家</span>
+    </button>
+    <button data-go="arch">
+      <svg viewBox="0 0 24 24"><path d="M5 3h11l3 3v15H5z"/><path d="M8.5 9h7M8.5 13h7M8.5 17h4"/></svg>
+      <span class="lb">档案</span>
+    </button>
+    <button data-go="tac">
+      <svg viewBox="0 0 24 24"><path d="M3 12h3l2-6 3 12 3-9 2 3h5"/></svg>
+      <span class="lb">触觉</span>
+    </button>
+    <button data-go="set">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/></svg>
+      <span class="lb">设置</span>
+    </button>
+  </div>
+
+  <!-- L1 -->
+  <div class="alertL1" id="aL1">
+    <div class="top">
+      <div class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9C7FB0" stroke-width="1.9"><path d="M18 8A6 6 0 1 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></div>
+      <div><div class="nm" id="aL1nm">门铃响了</div><div class="loc" id="aL1loc">玄关 · 14:32</div></div>
+    </div>
+    <div class="act">
+      <button class="pri" data-close="l1">知道了</button>
+      <button data-close="l1">查看</button>
+    </div>
+  </div>
+
+  <!-- L2 -->
+  <div class="alertL2" id="aL2">
+    <div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFC2E8" stroke-width="1.8"><circle cx="12" cy="8" r="3.2"/><path d="M6 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg></div>
+    <div class="nm" id="aL2nm">婴儿啼哭</div>
+    <div class="loc" id="aL2loc">卧室 · 14:35 · 8s</div>
+    <div class="desc" id="aL2desc">已开启婴儿房摄像头</div>
+    <div class="act">
+      <button class="pri" data-close="l2">确认</button>
+      <button data-close="l2">查看详情</button>
+    </div>
+  </div>
+
+  <!-- L3 + 升级阶梯 -->
+  <div class="alertL3" id="aL3">
+    <div class="ring"></div><div class="ring"></div>
+    <div class="ic"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9"><path d="M12 2c2 4 1 5 1 7 0 1.5-1 2-1 2s3-1 4 2c.7 2-1 3-1 3s2 1 1 3c-.8 1.6-3 2-3 2H9s-3-1-3.5-4C5 14 7 12 7 10c0-3 3-5 5-8z"/></svg></div>
+    <div class="nm" id="aL3nm">烟雾报警</div>
+    <div class="sub" id="aL3sub">厨房 · 立即确认</div>
+    <div class="loc" id="aL3loc">15:02:11 · L3</div>
+    <div class="escalate" id="escalate">
+      <div class="esc-step" data-step="0"><span class="d"></span><span class="tm">0s</span><span>震动 + 频闪 + 全屏</span></div>
+      <div class="esc-step" data-step="1"><span class="d"></span><span class="tm">30s</span><span>无响应 → 通知家人</span></div>
+      <div class="esc-step" data-step="2"><span class="d"></span><span class="tm">60s</span><span>无响应 → 呼叫物业 / 119</span></div>
+    </div>
+    <div class="act">
+      <button class="solid" data-close="l3">我已安全</button>
+      <button data-close="l3">一键求助</button>
+    </div>
+  </div>
+
+  <!-- 名字检测浮层 -->
+  <div class="nameToast" id="nameToast">
+    <div class="t1">有人在叫你</div>
+    <div class="t2" id="ntWho">客厅方向 · 妈妈的声音</div>
+    <div class="t3">它听到了你的名字"小雨"，已经用三短震提醒你</div>
+  </div>
+
+  <!-- 听障卡 -->
+  <div class="cardOverlay" id="cardOverlay">
+    <div class="deafcard">
+      <div class="brand"><i></i>SOUNDPULSE · 无障碍沟通卡</div>
+      <div class="big">我是<em>听障者</em></div>
+      <div class="rows">
+        <div class="r"><span class="n">1</span><span>请<b>面对我</b>说话，我看得懂口型。</span></div>
+        <div class="r"><span class="n">2</span><span>听不清时，请<b>写下来</b>或打字给我。</span></div>
+        <div class="r"><span class="n">3</span><span>请<b>放慢一点</b>，不用大声喊。</span></div>
+        <div class="r"><span class="n">4</span><span>如果我没反应，请<b>拍拍我肩膀</b>。</span></div>
+      </div>
+      <div class="foot">
+        <button class="o" data-hidecard="1">收起</button>
+        <button class="c" data-hidecard="1">全屏展示</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 首次向导 -->
+  <div class="onboard" id="onboard">
+    <div class="step" id="obStep">STEP 1 / 2</div>
+    <h2 id="obTitle">先告诉我<br>你<em>听得到多少</em></h2>
+    <div class="lead" id="obLead">这不是为了分类，是因为它要按你的情况，决定用哪种方式提醒你。</div>
+    <div class="opts" id="obOpts"></div>
+    <div class="nav2">
+      <button type="button" class="s" id="obBack">上一步</button>
+      <button type="button" class="p" id="obNext">下一步</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">提示</div>
+
+</div>
+
+<div class="sidepanel">
+  <div class="card">
+    <div class="h">DEMO CONTROL</div>
+    <button class="trig" data-trig="l1" data-room="entry"><span class="d" style="background:var(--l1)"></span>门铃 · 玄关<span class="k">L1</span></button>
+    <button class="trig" data-trig="l4" data-room="living"><span class="d" style="background:#FF6FB5"></span>有人叫你的名字<span class="k">名字</span></button>
+    <button class="trig" data-trig="l2" data-room="bed"><span class="d" style="background:var(--l2)"></span>婴儿哭 · 卧室<span class="k">L2</span></button>
+    <button class="trig" data-trig="l3" data-room="kitchen"><span class="d" style="background:#fff"></span>烟雾报警（含升级）<span class="k">L3</span></button>
+    <div class="divider"></div>
+    <button class="trig" id="autoBtn"><span class="d" style="background:#FF6FB5"></span>自动巡演<span class="k">AUTO</span></button>
+  </div>
+  <div class="card">
+    <div class="h">READ ME</div>
+    <div class="note">
+      <b>这次加了什么：</b><br>
+      · 首次打开先选听力档位（四档行为不同）<br>
+      · 名字检测 + 实时字幕<br>
+      · L3 三段升级倒计时（30s→家人 / 60s→物业）<br>
+      · 唤醒测试（听障者不能用闹钟）<br>
+      · 档案里可标"误报"，它会学<br>
+      · 听障卡一键出示<br>
+      · 字号可放大三档
+      <div class="divider"></div>
+      <b style="color:#FFC2E8">诚实交代：</b><br>
+      这个原型<b>没有接真实麦克风</b>——48 小时里我不做假演示，所有事件由下面按钮触发。这是刻意的：现场永远不翻车。<br><br>
+      出行 / 公共两个场景标了<b>「规划中」</b>，本次不演示。
+    </div>
+  </div>
+</div>
+</div>
+
+<script>/* 声脉 3D 场景 */
+/* ==========================================================
+   声脉 3D 场景 —— 可旋转/可点选的立体户型
+   ========================================================== */
+(function () {
+  'use strict';
+
+  var S3 = window.S3 = {};
+  var scene, camera, renderer, raycaster, pointer, clock;
+  var roomMeshes = [], waveRings = [], particles = [];
+  var root, floorGroup;
+  var isDragging = false, dragMoved = 0;
+  var lastX = 0, lastY = 0;
+  var targetRotY = 0.55, targetRotX = 0.92;
+  var curRotY = 0.55, curRotX = 0.92;
+  var zoom = 1, targetZoom = 1;
+  var hovered = null;
+  var onPick = null;
+
+  var COLORS = {
+    L1: 0x9C7FB0,
+    L2: 0xFFC2E8,
+    L3: 0xFFFFFF,
+    L2field: 0xC62828
+  };
+
+  /* 房间布局（俯视 XZ 平面，单位=米） */
+  var ROOMS = [
+    { id: 'living', name: '客厅', x: -2.2, z: -1.0, w: 4.0, d: 3.2, h: 2.6 },
+    { id: 'kitchen', name: '厨房', x: 2.1, z: -2.0, w: 2.6, d: 2.2, h: 2.6 },
+    { id: 'bed', name: '卧室', x: 2.1, z: 0.6, w: 2.6, d: 2.4, h: 2.6 },
+    { id: 'entry', name: '玄关', x: -2.6, z: 1.6, w: 1.8, d: 1.8, h: 2.6 },
+    { id: 'bath', name: '卫生间', x: 0.6, z: 1.9, w: 2.0, d: 1.6, h: 2.6 },
+    { id: 'balcony', name: '阳台', x: -0.6, z: 3.1, w: 5.4, d: 1.0, h: 2.6 }
+  ];
+
+  function init(canvas, pickCb) {
+    // 双重检查：typeof 对 null 不成立，必须显式判空
+    if (typeof THREE === 'undefined' || !THREE || !THREE.WebGLRenderer) {
+      if (window.console && console.warn) {
+        console.warn('[声脉] three.js 不可用，3D 视图将回退到平面户型');
+      }
+      return false;
+    }
+    onPick = pickCb;
+
+    scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x0C0A10, 0.028);
+
+    var w = canvas.clientWidth || 800;
+    var h = canvas.clientHeight || 600;
+
+    camera = new THREE.PerspectiveCamera(48, w / h, 0.1, 200);
+
+    renderer = new THREE.WebGLRenderer({
+      canvas: canvas,
+      antialias: true,
+      alpha: true,
+      powerPreference: 'high-performance'
+    });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(w, h, false);
+    renderer.setClearColor(0x000000, 0);
+
+    raycaster = new THREE.Raycaster();
+    pointer = new THREE.Vector2(-10, -10);
+    clock = new THREE.Clock();
+
+    root = new THREE.Group();
+    scene.add(root);
+    floorGroup = new THREE.Group();
+    root.add(floorGroup);
+
+    buildLights();
+    buildFloor();
+    buildRooms();
+    buildParticles();
+    buildGrid();
+
+    bindEvents(canvas);
+    animate();
+    return true;
+  }
+
+  /* ---------- 灯光 ---------- */
+  function buildLights() {
+    scene.add(new THREE.AmbientLight(0x8A6FB0, 1.1));
+
+    var key = new THREE.DirectionalLight(0xFFC2E8, 1.5);
+    key.position.set(6, 12, 6);
+    scene.add(key);
+
+    var fill = new THREE.DirectionalLight(0x7FD4FF, 0.85);
+    fill.position.set(-8, 6, -6);
+    scene.add(fill);
+
+    var p1 = new THREE.PointLight(0xFF6FB5, 2.6, 22, 2);
+    p1.position.set(-3, 3.4, 0);
+    scene.add(p1);
+
+    var p2 = new THREE.PointLight(0xA855F7, 2.2, 22, 2);
+    p2.position.set(3.4, 2.8, 2.2);
+    scene.add(p2);
+
+    var p3 = new THREE.PointLight(0x7FD4FF, 1.6, 18, 2);
+    p3.position.set(0, 2.2, 4.2);
+    scene.add(p3);
+  }
+
+  /* ---------- 地面 ---------- */
+  function buildFloor() {
+    var g = new THREE.PlaneGeometry(26, 26);
+    var m = new THREE.MeshStandardMaterial({
+      color: 0x140E1C,
+      metalness: 0.55,
+      roughness: 0.62,
+      transparent: true,
+      opacity: 0.92
+    });
+    var floor = new THREE.Mesh(g, m);
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = -0.02;
+    root.add(floor);
+
+    // 地面反射光晕（圆盘）
+    var rg = new THREE.RingGeometry(3.2, 8.4, 72);
+    var rm = new THREE.MeshBasicMaterial({
+      color: 0xFF6FB5,
+      transparent: true,
+      opacity: 0.06,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+    var halo = new THREE.Mesh(rg, rm);
+    halo.rotation.x = -Math.PI / 2;
+    halo.position.y = 0.01;
+    root.add(halo);
+  }
+
+  /* ---------- 网格 ---------- */
+  function buildGrid() {
+    var grid = new THREE.GridHelper(26, 26, 0x4A3760, 0x2A1E38);
+    grid.material.transparent = true;
+    grid.material.opacity = 0.5;
+    grid.position.y = 0.005;
+    root.add(grid);
+  }
+
+  /* ---------- 房间 ---------- */
+  function buildRooms() {
+    ROOMS.forEach(function (r) {
+      var group = new THREE.Group();
+      group.position.set(r.x, 0, r.z);
+
+      // 地板
+      var fg = new THREE.PlaneGeometry(r.w, r.d);
+      var fm = new THREE.MeshStandardMaterial({
+        color: 0x241A30,
+        metalness: 0.35,
+        roughness: 0.7,
+        transparent: true,
+        opacity: 0.88
+      });
+      var floor = new THREE.Mesh(fg, fm);
+      floor.rotation.x = -Math.PI / 2;
+      floor.position.y = 0.02;
+      floor.userData.room = r.id;
+      floor.userData.baseColor = 0x241A30;
+      group.add(floor);
+      roomMeshes.push(floor);
+
+      // 侧墙（低矮，做出"户型"感）
+      var wallH = 0.5;
+      var wm = new THREE.MeshStandardMaterial({
+        color: 0xB58CFF,
+        emissive: 0x6B3FA0,
+        emissiveIntensity: 0.75,
+        metalness: 0.2,
+        roughness: 0.35,
+        transparent: true,
+        opacity: 0.5
+      });
+
+      // 四边线框（用 EdgesGeometry 更好，但这里用细长方体做发光边）
+      var edges = [
+        { w: r.w, d: 0.035, x: 0, z: -r.d / 2 },
+        { w: r.w, d: 0.035, x: 0, z: r.d / 2 },
+        { w: 0.035, d: r.d, x: -r.w / 2, z: 0 },
+        { w: 0.035, d: r.d, x: r.w / 2, z: 0 }
+      ];
+      edges.forEach(function (e) {
+        var bg = new THREE.BoxGeometry(e.w, wallH, e.d);
+        var b = new THREE.Mesh(bg, wm);
+        b.position.set(e.x, wallH / 2, e.z);
+        b.userData.room = r.id;
+        b.userData.isEdge = true;
+        group.add(b);
+        roomMeshes.push(b);
+      });
+
+      // 房间名标牌（canvas 贴图）
+      var label = makeLabel(r.name);
+      label.position.set(0, 0.95, 0);
+      label.userData.room = r.id;
+      group.add(label);
+      roomMeshes.push(label);
+
+      group.userData = { room: r, mesh: floor };
+      floorGroup.add(group);
+    });
+  }
+
+  /* 用 canvas 画中文标签贴到 sprite 上 */
+  function makeLabel(text) {
+    var c = document.createElement('canvas');
+    c.width = 256;
+    c.height = 128;
+    var ctx = c.getContext('2d');
+    if (ctx) {
+      ctx.clearRect(0, 0, 256, 128);
+      ctx.fillStyle = 'rgba(255,240,255,0.92)';
+      ctx.font = 'bold 54px "PingFang SC","Microsoft YaHei",sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, 128, 64);
+    }
+    var tex = new THREE.CanvasTexture(c);
+    tex.needsUpdate = true;
+    var mat = new THREE.SpriteMaterial({
+      map: tex,
+      transparent: true,
+      depthWrite: false,
+      opacity: 0.9
+    });
+    var sp = new THREE.Sprite(mat);
+    sp.scale.set(1.5, 0.75, 1);
+    return sp;
+  }
+
+  /* ---------- 空气粒子 ---------- */
+  function buildParticles() {
+    var geo = new THREE.BufferGeometry();
+    var N = 260;
+    var pos = new Float32Array(N * 3);
+    for (var i = 0; i < N; i++) {
+      pos[i * 3] = (Math.random() - 0.5) * 22;
+      pos[i * 3 + 1] = Math.random() * 7 + 0.4;
+      pos[i * 3 + 2] = (Math.random() - 0.5) * 22;
+    }
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    var mat = new THREE.PointsMaterial({
+      color: 0xFFC2E8,
+      size: 0.055,
+      transparent: true,
+      opacity: 0.55,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    });
+    var pts = new THREE.Points(geo, mat);
+    pts.userData.basePos = pos.slice(0);
+    root.add(pts);
+    particles.push(pts);
+  }
+
+  /* ---------- 事件 ---------- */
+  function bindEvents(canvas) {
+    canvas.addEventListener('pointerdown', function (e) {
+      isDragging = true;
+      dragMoved = 0;
+      lastX = e.clientX;
+      lastY = e.clientY;
+      canvas.setPointerCapture && canvas.setPointerCapture(e.pointerId);
+    });
+
+    canvas.addEventListener('pointermove', function (e) {
+      var rect = canvas.getBoundingClientRect();
+      pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+      if (isDragging) {
+        var dx = e.clientX - lastX;
+        var dy = e.clientY - lastY;
+        dragMoved += Math.abs(dx) + Math.abs(dy);
+        targetRotY += dx * 0.006;
+        targetRotX += dy * 0.004;
+        targetRotX = Math.max(0.35, Math.min(1.42, targetRotX));
+        lastX = e.clientX;
+        lastY = e.clientY;
+        canvas.style.cursor = 'grabbing';
+      } else {
+        canvas.style.cursor = 'grab';
+      }
+    });
+
+    canvas.addEventListener('pointerup', function (e) {
+      var wasDrag = dragMoved > 8;
+      isDragging = false;
+      canvas.style.cursor = 'grab';
+      if (!wasDrag) pick();
+    });
+
+    canvas.addEventListener('pointerleave', function () {
+      isDragging = false;
+      pointer.x = -10; pointer.y = -10;
+    });
+
+    canvas.addEventListener('wheel', function (e) {
+      e.preventDefault();
+      targetZoom += e.deltaY * 0.0012;
+      targetZoom = Math.max(0.62, Math.min(1.85, targetZoom));
+    }, { passive: false });
+
+    window.addEventListener('resize', function () { resize(canvas); });
+  }
+
+  function resize(canvas) {
+    if (!renderer) return;
+    var w = canvas.clientWidth || 800;
+    var h = canvas.clientHeight || 600;
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h, false);
+  }
+
+  /* ---------- 点选 ---------- */
+  function pick() {
+    if (!onPick) return;
+    raycaster.setFromCamera(pointer, camera);
+    var hits = raycaster.intersectObjects(roomMeshes, false);
+    for (var i = 0; i < hits.length; i++) {
+      var rid = hits[i].object.userData.room;
+      if (rid) { onPick(rid); return; }
+    }
+    onPick(null);
+  }
+
+  /* ---------- 波纹（3D 扩散环） ---------- */
+  function ripple(roomId, level, opts) {
+    var room = null;
+    for (var i = 0; i < ROOMS.length; i++) {
+      if (ROOMS[i].id === roomId) { room = ROOMS[i]; break; }
+    }
+    if (!room) return;
+
+    var col = level === 'l3' ? 0xFFFFFF : (level === 'l2' ? 0xFFC2E8 : 0x9C7FB0);
+    var maxR = Math.max(room.w, room.d) * 0.85;
+    var rings = level === 'l3' ? 4 : 3;
+
+    for (var k = 0; k < rings; k++) {
+      (function (kk) {
+        var geo = new THREE.RingGeometry(0.06, 0.11, 64);
+        var mat = new THREE.MeshBasicMaterial({
+          color: col,
+          transparent: true,
+          opacity: 0.9,
+          side: THREE.DoubleSide,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending
+        });
+        var ring = new THREE.Mesh(geo, mat);
+        ring.rotation.x = -Math.PI / 2;
+        ring.position.set(room.x, 0.06, room.z);
+        ring.userData.t = -kk * 0.34;
+        ring.userData.maxR = maxR;
+        ring.userData.speed = level === 'l3' ? 1.5 : 1.1;
+        root.add(ring);
+        waveRings.push(ring);
+      })(k);
+    }
+
+    // 房间高亮（呼吸光）
+    for (var m = 0; m < roomMeshes.length; m++) {
+      var o = roomMeshes[m];
+      if (o.userData.room === roomId && !o.userData.isEdge && o.material && o.material.color) {
+        o.userData.flash = 1.0;
+        o.userData.flashColor = col;
+      }
+      if (o.userData.room === roomId && o.userData.isEdge && o.material) {
+        o.userData.edgeFlash = 1.0;
+      }
+    }
+  }
+
+  /* ---------- 事件涟漪（中心球） ---------- */
+  function pulse(roomId, level) {
+    var room = null;
+    for (var i = 0; i < ROOMS.length; i++) {
+      if (ROOMS[i].id === roomId) { room = ROOMS[i]; break; }
+    }
+    if (!room) return;
+    var col = level === 'l3' ? 0xFFFFFF : (level === 'l2' ? 0xFFC2E8 : 0x9C7FB0);
+    var geo = new THREE.SphereGeometry(0.12, 20, 20);
+    var mat = new THREE.MeshBasicMaterial({
+      color: col, transparent: true, opacity: 0.95,
+      blending: THREE.AdditiveBlending, depthWrite: false
+    });
+    var s = new THREE.Mesh(geo, mat);
+    s.position.set(room.x, 0.16, room.z);
+    s.userData.life = 1;
+    s.userData.isPulse = true;
+    root.add(s);
+    waveRings.push(s);
+  }
+
+  /* ---------- 动画循环 ---------- */
+  function animate() {
+    requestAnimationFrame(animate);
+    var dt = Math.min(clock.getDelta(), 0.05);
+    var t = clock.elapsedTime;
+
+    // 相机
+    curRotY += (targetRotY - curRotY) * 0.1;
+    curRotX += (targetRotX - curRotX) * 0.1;
+    zoom += (targetZoom - zoom) * 0.1;
+
+    var dist = 13.5 / zoom;
+    var cx = Math.sin(curRotY) * Math.cos(curRotX) * dist * 0.9;
+    var cy = Math.sin(curRotX) * dist;
+    var cz = Math.cos(curRotY) * Math.cos(curRotX) * dist * 0.9;
+    camera.position.set(cx, cy, cz);
+    camera.lookAt(0, 0.6, 0.3);
+
+    // 波纹
+    for (var i = waveRings.length - 1; i >= 0; i--) {
+      var o = waveRings[i];
+      if (o.userData.isPulse) {
+        o.userData.life -= dt * 1.4;
+        var sc = 1 + (1 - o.userData.life) * 3.2;
+        o.scale.set(sc, sc, sc);
+        o.material.opacity = Math.max(0, o.userData.life) * 0.9;
+        if (o.userData.life <= 0) {
+          root.remove(o);
+          o.geometry.dispose();
+          o.material.dispose();
+          waveRings.splice(i, 1);
+        }
+        continue;
+      }
+      o.userData.t += dt * o.userData.speed;
+      var tt = o.userData.t;
+      if (tt < 0) { o.material.opacity = 0; continue; }
+      if (tt > 1) {
+        root.remove(o);
+        o.geometry.dispose();
+        o.material.dispose();
+        waveRings.splice(i, 1);
+        continue;
+      }
+      var r = 0.06 + tt * o.userData.maxR;
+      var s2 = r / 0.085;
+      o.scale.set(s2, s2, 1);
+      o.material.opacity = (1 - tt) * 0.85;
+    }
+
+    // 房间高亮衰减
+    for (var m = 0; m < roomMeshes.length; m++) {
+      var oo = roomMeshes[m];
+      if (oo.userData.flash !== undefined && oo.userData.flash > 0 && !oo.userData.isEdge) {
+        oo.userData.flash = Math.max(0, oo.userData.flash - dt * 1.1);
+        var f = oo.userData.flash;
+        var c = new THREE.Color(oo.userData.baseColor || 0x241A30);
+        var hc = new THREE.Color(oo.userData.flashColor || 0xFFC2E8);
+        c.lerp(hc, f * 0.55);
+        oo.material.color.copy(c);
+        oo.material.opacity = 0.88 + f * 0.1;
+      }
+      if (oo.userData.edgeFlash !== undefined && oo.userData.edgeFlash > 0 && oo.userData.isEdge) {
+        oo.userData.edgeFlash = Math.max(0, oo.userData.edgeFlash - dt * 1.0);
+        var ef = oo.userData.edgeFlash;
+        if (oo.material.emissiveIntensity !== undefined) {
+          oo.material.emissiveIntensity = 0.75 + ef * 1.8;
+        }
+      }
+    }
+
+    // 粒子缓慢上浮
+    for (var pi = 0; pi < particles.length; pi++) {
+      var pts = particles[pi];
+      var attr = pts.geometry.getAttribute('position');
+      var arr = attr.array;
+      var base = pts.userData.basePos;
+      for (var j = 0; j < arr.length; j += 3) {
+        arr[j + 1] = base[j + 1] + Math.sin(t * 0.45 + arr[j] * 0.7) * 0.32 + (t * 0.04 % 1.2);
+        if (arr[j + 1] > 7.5) arr[j + 1] = 0.4;
+      }
+      attr.needsUpdate = true;
+    }
+
+    renderer.render(scene, camera);
+  }
+
+  /* ---------- 对外 API ---------- */
+  S3.init = init;
+  S3.ripple = ripple;
+  S3.pulse = pulse;
+  S3.resize = resize;
+  S3.setView = function (ry, rx, z) {
+    if (ry !== undefined) targetRotY = ry;
+    if (rx !== undefined) targetRotX = rx;
+    if (z !== undefined) targetZoom = z;
+  };
+  S3.getRooms = function () { return ROOMS.slice(); };
+})();
+
+</script>
+<script>
+/* =========================================================
+   数据层
+   ========================================================= */
+const GRADES = {
+  mild:     {label:'轻度', name:'轻度听损', chip:'轻度 · 中文字幕', subs:true,  nameDet:false, picto:false, vib:false, subSize:'normal'},
+  moderate: {label:'中度', name:'中度听损', chip:'中度 · 字幕+振动', subs:true,  nameDet:true,  picto:false, vib:true,  subSize:'normal'},
+  severe:   {label:'重度', name:'重度听损', chip:'重度 · 图形+强震', subs:true,  nameDet:true,  picto:true,  vib:true,  subSize:'big'},
+  profound: {label:'极重度', name:'极重度 / 全聋', chip:'极重度 · 图形优先', subs:false, nameDet:true, picto:true, vib:true, subSize:'big'}
+};
+
+const EVENTS = [
+  {t:'15:02:11', nm:'烟雾报警', room:'kitchen', lv:'l3', dur:'4s',  dist:'近', act:'全屏接管 · 30s 后通知家人 · 60s 后呼叫物业', wave:'l3', pend:false},
+  {t:'14:41:52', nm:'玻璃碎裂', room:'living',  lv:'l3', dur:'2s',  dist:'中', act:'全屏接管 · 已录音存档 · 已通知物业',           wave:'l3', pend:false},
+  {t:'14:38:10', nm:'有人叫你的名字', room:'living', lv:'l2', dur:'1s', dist:'近', act:'三短震 + 字幕高亮 · 客厅方向 · 妈妈的声音', wave:'l2', pend:false},
+  {t:'14:31:08', nm:'水开',     room:'kitchen', lv:'l1', dur:'12s', dist:'近', act:'单短震 · 已提醒关火',                           wave:'l1', pend:false},
+  {t:'14:28:39', nm:'快递到门', room:'balcony', lv:'l1', dur:'2s',  dist:'远', act:'单短震 · 已提醒取件',                           wave:'l1', pend:false},
+  {t:'14:26:41', nm:'敲门声',   room:'entry',   lv:'l2', dur:'5s',  dist:'近', act:'双短震 · 字幕：「我进来了啊」',                 wave:'l2', pend:false},
+  {t:'14:22:05', nm:'未知高频声', room:'bath',  lv:'l2', dur:'3s',  dist:'中', act:'标为待确认 · 等你命名',                         wave:'l2', pend:true},
+  {t:'14:12:33', nm:'玻璃轻碰', room:'living',  lv:'l2', dur:'2s',  dist:'中', act:'双短震 · 已确认无异常',                         wave:'l2', pend:false},
+  {t:'13:58:19', nm:'楼道脚步', room:'entry',   lv:'l2', dur:'6s',  dist:'远', act:'标为待确认',                                     wave:'l2', pend:true},
+  {t:'13:40:07', nm:'手机通知', room:'living',  lv:'l1', dur:'1s',  dist:'近', act:'单短震',                                        wave:'l1', pend:false}
+];
+
+const LVC = {
+  l1:{c:'#9C7FB0', rip:'#9C7FB0', r:4.5, name:'L1 日常'},
+  l2:{c:'#FFC2E8', rip:'#FFC2E8', r:5.5, name:'L2 关注'},
+  l3:{c:'#FFFFFF', rip:'#FFFFFF', r:6.5, name:'L3 紧急'}
+};
+
+const ROMEC = {
+  living: {x:79,  y:64,  x0:8,   y0:8,   w:142, h:112},
+  kitchen:{x:192, y:39,  x0:152, y0:8,   w:80,  h:62},
+  bed:    {x:273, y:39,  x0:234, y0:8,   w:78,  h:62},
+  entry:  {x:192, y:96,  x0:152, y0:72,  w:80,  h:48},
+  bath:   {x:273, y:96,  x0:234, y0:72,  w:78,  h:48},
+  balcony:{x:160, y:137, x0:8,   y0:122, w:304, h:30}
+};
+const ROOMNAME = {living:'客厅', kitchen:'厨房', bed:'卧室', entry:'玄关', bath:'卫生间', balcony:'阳台'};
+
+const ROOM_HIT = {
+  living: {nm:'玻璃轻碰', lv:'l2'},
+  kitchen:{nm:'水开',     lv:'l1'},
+  bed:    {nm:'婴儿啼哭', lv:'l2'},
+  entry:  {nm:'门铃响了', lv:'l1'},
+  bath:   {nm:'水溢出',   lv:'l2'},
+  balcony:{nm:'快递到门', lv:'l1'}
+};
+
+const MODES = {
+  day:  {name:'日常模式', allow:{l1:true, l2:true, l3:true}, state:'都看到了',
+         note:'全部声音都会提醒', dot:'#9C7FB0'},
+  sleep:{name:'睡眠模式', allow:{l1:false, l2:true, l3:true}, state:'夜间守护',
+         note:'只提醒关注与紧急', dot:'#9C7FB0'},
+  away: {name:'离家模式', allow:{l1:false, l2:false, l3:true}, state:'离家布防',
+         note:'紧急事件推给家人，不推给你', dot:'#A855F7'}
+};
+
+const SUBS_LINES = [
+  {who:'妈妈', text:'晚饭在锅里，回来自己热'},
+  {who:'妈妈', text:'你去把窗户关一下'},
+  {who:'爸爸', text:'外面下雨了，伞在门口'},
+  {who:'妈妈', text:'刚才有人敲门，你听见没有'}
+];
+
+const DEVS = [
+  {n:'客厅', b:98, on:true}, {n:'厨房', b:76, on:true},
+  {n:'卧室', b:91, on:true}, {n:'玄关', b:64, on:true},
+  {n:'卫生间', b:12, on:false},{n:'阳台', b:83, on:true}
+];
+
+/* =========================================================
+   状态
+   ========================================================= */
+const STATE = {
+  mode:'day',
+  grade:null,
+  subs:true,
+  nameDet:true,
+  picto:false,
+  ha:true,
+  fs:1,
+  misread:{},
+  seen:0,
+  total:14,
+  pending:2,
+  escTimer:null,
+  escStep:-1,
+  subIdx:0,
+  onboardStep:0
+};
+
+const $ = function(id){ return document.getElementById(id); };
+
+/* =========================================================
+   轻提示
+   ========================================================= */
+let TOAST_T = null;
+function toast(msg){
+  const el = $('toast');
+  if(!el) return;
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(TOAST_T);
+  TOAST_T = setTimeout(function(){ el.classList.remove('show'); }, 2100);
+}
+
+/* =========================================================
+   波形
+   ========================================================= */
+function buildWave(el, n, color){
+  if(!el) return;
+  el.innerHTML = '';
+  for(let i=0;i<n;i++){
+    const b = document.createElement('i');
+    b.style.background = color || '#FF6FB5';
+    b.style.height = (14 + Math.random()*66) + '%';
+    b.style.animationDelay = (Math.random()*1.1).toFixed(2) + 's';
+    b.style.animationDuration = (0.8 + Math.random()*0.9).toFixed(2) + 's';
+    el.appendChild(b);
+  }
+}
+
+/* =========================================================
+   视图切换
+   ========================================================= */
+function go(v){
+  document.querySelectorAll('.view').forEach(function(s){ s.classList.remove('on'); });
+  const t = $('v-' + v);
+  if(t) t.classList.add('on');
+  document.querySelectorAll('#navbar button').forEach(function(b){
+    b.classList.toggle('on', b.dataset.go === v);
+  });
+  const bd = $('bodyEl');
+  if(bd) bd.scrollTop = 0;
+  if(v === 'arch') renderTimeline(curFilter());
+}
+
+function curFilter(){
+  const on = document.querySelector('#filters button.on');
+  return on ? on.dataset.f : 'all';
+}
+
+/* =========================================================
+   听力档位：改变整个产品
+   ========================================================= */
+function applyGrade(g){
+  STATE.grade = g;
+  const cfg = GRADES[g];
+
+  /* 1. 字幕通道 */
+  STATE.subs = cfg.subs;
+  /* 2. 名字检测 */
+  STATE.nameDet = cfg.nameDet;
+  /* 3. 图形优先 */
+  STATE.picto = cfg.picto;
+
+  /* 更新 UI */
+  if($('homeLevel')) $('homeLevel').textContent = cfg.chip;
+  const subsBox = $('subsBox');
+  if(subsBox) subsBox.classList.toggle('off', !STATE.subs);
+  if($('subsLabel')) $('subsLabel').textContent =
+    STATE.subs ? '实时字幕 · 客厅'
+    : (g === 'profound' ? '极重度：默认关闭字幕，走图形 + 震动' : '未开启字幕 · 去无障碍中心打开');
+  if(subsBox){
+    subsBox.style.setProperty('--subsize',
+      cfg.subSize === 'big' ? '1.25' : '1');
+  }
+
+  const nc = $('nameCard');
+  if(nc) nc.style.display = STATE.nameDet ? '' : 'none';
+  if($('nameTag')) $('nameTag').textContent = STATE.nameDet ? '已开启' : '已关闭';
+
+  /* 图形优先：把事件名换成大图标 + 颜色条 */
+  document.querySelectorAll('.tnode').forEach(function(n){
+    n.classList.toggle('picto', STATE.picto);
+  });
+
+  /* 档位按钮 */
+  document.querySelectorAll('#grades button').forEach(function(b){
+    b.classList.toggle('on', b.dataset.g === g);
+  });
+
+  /* 同步开关 */
+  const swSubs = document.querySelector('[data-sw="subs"]');
+  const swName = document.querySelector('[data-sw="name"]');
+  const swPicto = document.querySelector('[data-sw="picto"]');
+  if(swSubs) swSubs.classList.toggle('on', STATE.subs);
+  if(swName) swName.classList.toggle('on', STATE.nameDet);
+  if(swPicto) swPicto.classList.toggle('on', STATE.picto);
+}
+
+/* =========================================================
+   模式
+   ========================================================= */
+function setMode(m){
+  STATE.mode = m;
+  const cfg = MODES[m];
+  if($('modeLine')) $('modeLine').textContent = cfg.name.replace('模式','') + ' · 6 台在线';
+  if($('stateTxt')) $('stateTxt').textContent = cfg.state;
+  if($('homeModeTxt')) $('homeModeTxt').textContent = cfg.name;
+  if($('notchTxt')) $('notchTxt').textContent = cfg.note.slice(0,7) + ' · 6 台';
+  if($('notchDot')) $('notchDot').style.background = cfg.dot;
+  const pill = $('lvPill');
+  if(pill) pill.className = 'lv' + (m === 'away' ? ' lv3' : '');
+  if($('lvPillTxt')) $('lvPillTxt').textContent = m === 'away' ? '布防中' : '等级 低';
+  document.querySelectorAll('#modes button').forEach(function(b){
+    b.classList.toggle('on', b.dataset.mode === m);
+  });
+  toast(cfg.name + '：' + cfg.note);
+}
+
+/* =========================================================
+   户型波纹（双渲染：3D 优先，2D 回退）
+   ========================================================= */
+let USE_3D = false;
+
+function playRoom(room, lv, evName, dist){
+  const rc = ROMEC[room];
+  if(!rc) return;
+  const cfg = LVC[lv] || LVC.l1;
+
+  /* ---- 3D 渲染 ---- */
+  if(USE_3D && window.S3){
+    try{
+      window.S3.ripple(room, lv);
+      window.S3.pulse(room, lv);
+    }catch(e){ /* 3D 失败不阻断 2D */ }
+  }
+
+  /* ---- 2D 回退渲染（同时保留，3D 不可用时仍可演） ---- */
+  const layer = $('rippleLayer');
+  if(layer){
+    const rEl = $('r-' + room), lEl = $('l-' + room);
+    if(rEl){ rEl.classList.add('hot'); setTimeout(function(){ rEl.classList.remove('hot'); }, 2300); }
+    if(lEl){ lEl.classList.add('hot'); setTimeout(function(){ lEl.classList.remove('hot'); }, 2300); }
+
+    for(let k=0;k<3;k++){
+      const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      c.setAttribute('cx', rc.x); c.setAttribute('cy', rc.y); c.setAttribute('r', 3);
+      c.setAttribute('fill', 'none');
+      c.setAttribute('stroke', cfg.rip);
+      c.setAttribute('stroke-width', lv === 'l3' ? 2.2 : 1.7);
+      c.setAttribute('class', lv === 'l3' ? 'ripB' : 'rip');
+      c.style.animationDelay = (k*0.3) + 's';
+      c.style.opacity = lv === 'l1' ? '.7' : '.9';
+      layer.appendChild(c);
+      (function(node){ setTimeout(function(){ if(node.parentNode) node.parentNode.removeChild(node); }, 3000); })(c);
+    }
+
+    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    dot.setAttribute('cx', rc.x); dot.setAttribute('cy', rc.y);
+    dot.setAttribute('r', cfg.r); dot.setAttribute('fill', cfg.c);
+    dot.setAttribute('class', 'ripDot');
+    layer.appendChild(dot);
+    (function(node){ setTimeout(function(){ if(node.parentNode) node.parentNode.removeChild(node); }, 2800); })(dot);
+  }
+
+  const pd = $('pipDot');
+  if(pd){ pd.classList.add('on'); setTimeout(function(){ pd.classList.remove('on'); }, 1900); }
+
+  const d = dist || (lv === 'l3' ? '近' : lv === 'l2' ? '中' : '近');
+  if($('lastEv')) $('lastEv').textContent = evName || (ROOM_HIT[room] ? ROOM_HIT[room].nm : '声音');
+  if($('lastLoc')) $('lastLoc').textContent = ROOMNAME[room] || '';
+  if($('lastTime')) $('lastTime').textContent = new Date().toTimeString().slice(0,8);
+  if($('lastDur')) $('lastDur').textContent = (cfg.name) + ' · ' + d;
+}
+
+/* 启动 3D；失败则回退 2D 并提示 */
+function init3D(){
+  const canvas = $('scene3d');
+  if(!canvas) return;
+  if(!window.S3 || !window.THREE){ fallback2D('3D 引擎不可用'); return; }
+
+  let ok = false;
+  try{
+    ok = window.S3.init(canvas, function(roomId){
+      if(!roomId) return;
+      hitRoom(roomId);
+      if($('camHint')){
+        $('camHint').textContent = '已选中：' + (ROOMNAME[roomId] || roomId);
+        setTimeout(function(){ if($('camHint')) $('camHint').textContent = '拖拽旋转 · 滚轮缩放 · 点房间'; }, 2400);
+      }
+    });
+  }catch(e){
+    ok = false;
+  }
+
+  if(ok){
+    USE_3D = true;
+    if($('floorSvg')) $('floorSvg').style.display = 'none';
+    setTimeout(function(){ try{ window.S3.resize(canvas); }catch(e){} }, 60);
+    // 首次轻微旋转，暗示可交互
+    setTimeout(function(){
+      try{ window.S3.setView(0.72, 0.86, 1.0); }catch(e){}
+    }, 380);
+  } else {
+    fallback2D('WebGL 初始化失败');
+  }
+}
+
+function fallback2D(reason){
+  USE_3D = false;
+  const canvas = $('scene3d');
+  if(canvas) canvas.style.display = 'none';
+  const svg = $('floorSvg');
+  if(svg) svg.style.display = 'block';
+  if($('camHint')) $('camHint').textContent = '平面视图';
+  if(window.console && console.warn) console.warn('[声脉] ' + reason + '，已回退平面户型');
+}
+
+function hitRoom(room){
+  const cfg = ROOM_HIT[room];
+  if(!cfg) return;
+  playRoom(room, cfg.lv, cfg.nm);
+  if($('subsLine') && STATE.subs){
+    $('subsLine').innerHTML = '<span class="who">' + ROOMNAME[room] + '</span>' + cfg.nm + '（' + ROOMNAME[room] + '）';
+  }
+}
+
+/* =========================================================
+   三级 / 名字 / 升级阶梯
+   ========================================================= */
+const CLOSE = {
+  l1: function(){ $('aL1').classList.remove('show'); clearTimeout(L1_T); },
+  l2: function(){ $('aL2').classList.remove('show'); },
+  l3: function(){ $('aL3').classList.remove('show'); stopEscalate(); },
+  name: function(){ $('nameToast').classList.remove('show'); }
+};
+let L1_T = null;
+let NAME_T = null;
+
+function vibrate(ms){ try{ if(navigator.vibrate) navigator.vibrate(ms); }catch(e){} }
+function vibratePattern(lv){
+  try{
+    if(!navigator.vibrate) return;
+    if(lv === 'l1') navigator.vibrate([120]);
+    else if(lv === 'l2' && STATE.nameDet) navigator.vibrate([120,90,120,90,120]);  /* 名字 = 三短震 */
+    else if(lv === 'l2') navigator.vibrate([120,180,120]);
+    else navigator.vibrate([800]);
+  }catch(e){}
+}
+
+/* 升级阶梯：真的会倒计时推进 */
+function startEscalate(){
+  stopEscalate();
+  STATE.escStep = 0;
+  paintEscalate(0);
+  const steps = [
+    {at:30000, idx:1, msg:'30 秒无响应 → 已通知家人'},
+    {at:60000, idx:2, msg:'60 秒无响应 → 已呼叫物业 / 119'}
+  ];
+  let i = 0;
+  function tick(){
+    if(i >= steps.length) return;
+    const s = steps[i];
+    STATE.escTimer = setTimeout(function(){
+      if(!$('aL3').classList.contains('show')) return;
+      STATE.escStep = s.idx;
+      paintEscalate(s.idx);
+      toast(s.msg);
+      vibrate(400);
+      i++;
+      tick();
+    }, s.at - (i ? steps[i-1].at : 0));
+  }
+  tick();
+}
+function paintEscalate(idx){
+  const box = $('escalate');
+  if(!box) return;
+  box.querySelectorAll('.esc-step').forEach(function(el){
+    const n = parseInt(el.dataset.step, 10);
+    el.classList.toggle('done', n < idx);
+    el.classList.toggle('active', n === idx);
+  });
+}
+function stopEscalate(){
+  if(STATE.escTimer){ clearTimeout(STATE.escTimer); STATE.escTimer = null; }
+  STATE.escStep = -1;
+}
+
+function trigger(lv, room){
+  if(!room){
+    room = lv === 'l3' ? 'kitchen' : lv === 'l2' ? 'bed' : 'entry';
+  }
+  if(!$('v-room').classList.contains('on')) go('room');
+
+  /* 名字检测 */
+  if(lv === 'l4'){
+    playRoom(room || 'living', 'l2', '有人叫你的名字', '近');
+    if(!STATE.nameDet){ toast('名字检测已关闭（去无障碍中心打开）'); return; }
+    vibratePattern('l2');
+    /* 修复：取消延迟，点击立刻看到浮层（原来 320ms 延迟让人觉得没反应） */
+    $('ntWho').textContent = ROOMNAME[room || 'living'] + '方向 · 妈妈的声音';
+    $('nameToast').classList.add('show');
+    clearTimeout(NAME_T);
+    NAME_T = setTimeout(function(){ $('nameToast').classList.remove('show'); }, 4200);
+    bumpSeen();
+    return;
+  }
+
+  const ev = EVENTS.filter(function(e){ return e.room === room && e.lv === lv; })[0];
+  const nm = ev ? ev.nm : (ROOM_HIT[room] ? ROOM_HIT[room].nm : '声音');
+  playRoom(room, lv, nm, ev ? ev.dist : null);
+
+  const allowed = MODES[STATE.mode].allow[lv];
+
+  /* 修复：弹窗改为立即出现（原来等 380–420ms，体感像"点不动"）。
+     波纹动画本身已经提供了 300ms 的视觉引导，不需要再额外延迟。 */
+  (function(){
+    if(lv === 'l1'){
+      if(!allowed){ toast('睡眠/离家模式：L1 已静默记录'); return; }
+      $('aL1nm').textContent = nm;
+      $('aL1loc').textContent = ROOMNAME[room] + ' · ' + new Date().toTimeString().slice(0,5);
+      $('aL1').classList.add('show');
+      clearTimeout(L1_T);
+      L1_T = setTimeout(function(){ $('aL1').classList.remove('show'); }, 5200);
+    }
+    else if(lv === 'l2'){
+      if(!allowed){ toast('离家模式：L2 只记录不打扰'); return; }
+      $('aL2nm').textContent = nm;
+      $('aL2loc').textContent = ROOMNAME[room] + ' · ' + new Date().toTimeString().slice(0,5) + ' · ' + (ev ? ev.dur : '5s');
+      $('aL2desc').innerHTML = (STATE.mode === 'away'
+        ? '已推送到<b style="color:#FFC2E8">女儿的手机</b>（你可能听不到）'
+        : '已开启该房间摄像头') + '<br><span style="color:var(--t4)">震动：双短震（L2）</span>';
+      $('aL2').classList.add('show');
+    }
+    else {
+      /* L3 永远允许 */
+      $('aL3nm').textContent = nm;
+      $('aL3sub').textContent = ROOMNAME[room] + ' · 立即确认';
+      $('aL3loc').textContent = new Date().toTimeString().slice(0,8) + ' · ' + (ev ? ev.dur : '4s') + ' · L3';
+      $('aL3').classList.add('show');
+      vibratePattern('l3');
+      startEscalate();
+      bumpSeen();
+    }
+  })();
+}
+
+function bumpSeen(){
+  STATE.seen = Math.min(STATE.seen + 1, 3);
+  const el = $('evSeen');
+  if(el) el.textContent = STATE.seen + '/3';
+  const r = $('missRate');
+  if(r){
+    const rate = Math.round((3 - STATE.seen) / 3 * 100);
+    r.innerHTML = rate + '<small>%</small>';
+  }
+}
+
+/* =========================================================
+   档案卷（含误报纠正）
+   ========================================================= */
+function waveBars(lv){
+  const c = LVC[lv].c;
+  let s = '';
+  for(let i=0;i<42;i++){
+    const h = 12 + Math.abs(Math.sin(i*0.68)) * 72 * Math.random() + 14;
+    s += '<i style="background:' + c + ';height:' + Math.min(100, h).toFixed(0) + '%"></i>';
+  }
+  return s;
+}
+
+function renderTimeline(filter){
+  const tl = $('timeline');
+  if(!tl) return;
+  let list;
+  if(filter === 'all') list = EVENTS;
+  else if(filter === 'pend') list = EVENTS.filter(function(e){ return e.pend; });
+  else list = EVENTS.filter(function(e){ return e.lv === filter; });
+
+  if(!list.length){
+    tl.innerHTML = '<div style="color:var(--t4);font-size:12px;padding:20px 0">这里暂时没有事件</div>';
+    return;
+  }
+
+  tl.innerHTML = list.map(function(e, i){
+    const cfg = LVC[e.lv];
+    const isMis = !!STATE.misread[e.t];
+    const inList = EVENTS.indexOf(e);
+    return '<div class="tnode' + (isMis ? ' misread' : '') + '" data-i="' + inList + '">' +
+      '<span class="dot" style="background:' + cfg.c + ';box-shadow:0 0 8px ' + cfg.c + '66"></span>' +
+      '<div class="tcard" style="border-left-color:' + cfg.c + '">' +
+        '<div class="t">' + e.t + (e.pend ? ' · <span style="color:#FFC2E8">待确认</span>' : '') + '</div>' +
+        '<div class="nm">' + e.nm +
+          '<span style="font-size:9px;padding:1.5px 5px;border-radius:4px;font-weight:800;' +
+          'background:' + cfg.c + '22;color:' + cfg.c + ';border:1px solid ' + cfg.c + '44">' + cfg.name + '</span>' +
+        '</div>' +
+        '<div class="meta"><span>' + (ROOMNAME[e.room] || '') + '</span><span>' + e.dist + '</span>' +
+        '<span>持续 ' + e.dur + '</span><span style="color:var(--t4)">点开 ▼</span></div>' +
+        '<div class="more">' +
+          '<div><b>联动动作：</b>' + e.act + '</div>' +
+          '<div style="margin-top:7px"><b>波形缩略：</b></div>' +
+          '<div class="wf">' + waveBars(e.wave) + '</div>' +
+          '<div class="fbrow">' +
+            '<button data-fb="' + inList + '" data-v="1" class="' + (isMis ? 'act' : '') + '">这不是这个声音</button>' +
+            '<button data-fb="' + inList + '" data-v="0">判断对的</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+document.addEventListener('click', function(ev){
+  const fb = ev.target.closest('[data-fb]');
+  if(fb){
+    ev.stopPropagation();
+    const i = parseInt(fb.dataset.fb, 10);
+    const v = fb.dataset.v === '1';
+    const e = EVENTS[i];
+    if(!e) return;
+    if(v){
+      STATE.misread[e.t] = true;
+      toast('已记为误报。同类声音下次会降一级，并先问你。');
+    }else{
+      delete STATE.misread[e.t];
+      toast('收到。这类声音会保持原样。');
+    }
+    renderTimeline(curFilter());
+    return;
+  }
+});
+
+/* =========================================================
+   首次向导
+   ========================================================= */
+const OB_OPTS = {
+  1: [
+    {v:'mild',     nm:'轻度',   ds:'安静环境能正常交流，噪声里听不清 s / sh / f 这类辅音', ch:['字幕','关键词高亮']},
+    {v:'moderate', nm:'中度',   ds:'戴助听器能对话，但持续听很累，经常需要重复',           ch:['字幕','振动提醒','名字检测']},
+    {v:'severe',   nm:'重度',   ds:'只听得见巨响，听不清说话内容',                         ch:['图形优先','强震动','名字检测']},
+    {v:'profound', nm:'极重度 / 全聋', ds:'几乎听不到声音，可能以手语为主要语言',           ch:['图形优先','震动','频闪']}
+  ],
+  2: [
+    {v:'day',   nm:'日常模式', ds:'白天在家，什么声音都想知道',           ch:['全部提醒','屏幕优先']},
+    {v:'sleep', nm:'夜间优先', ds:'晚上只想知道会不会有危险',             ch:['静默 L1','强震唤醒']},
+    {v:'away',  nm:'常出门',   ds:'人不在家时，让家人替你收警报',         ch:['推给家人','只留记录']}
+  ]
+};
+
+function showOnboard(){
+  STATE.onboardStep = 1;
+  /* 修复：启动时不能预选，否则用户看到"什么都没选"却点得动下一步，
+     以为是 bug。现在必须真的选一个。 */
+  STATE.grade = null;
+  STATE.pickMode = null;
+  renderOnboard();
+  $('onboard').classList.add('show');
+}
+
+function renderOnboard(){
+  const step = STATE.onboardStep;
+  $('obStep').textContent = 'STEP ' + step + ' / 2';
+  if(step === 1){
+    $('obTitle').innerHTML = '先告诉我<br>你<em>听得到多少</em>';
+    $('obLead').textContent = '这不是为了分类，是因为它要按你的情况，决定用哪种方式提醒你。';
+  } else {
+    $('obTitle').innerHTML = '平时<em>什么时候</em><br>你最需要它';
+    $('obLead').textContent = '这会决定：哪些声音必须打断你，哪些只需要记下来。';
+  }
+  const opts = OB_OPTS[step] || [];
+  $('obOpts').innerHTML = opts.map(function(o){
+    const on = (step === 1 && STATE.grade === o.v) || (step === 2 && STATE.pickMode === o.v);
+    const chips = (o.ch && o.ch.length)
+      ? '<div class="ch">' + o.ch.map(function(c){ return '<span>' + c + '</span>'; }).join('') + '</div>'
+      : '';
+    return '<button class="opt' + (on ? ' on' : '') + '" data-ob="' + o.v + '">' +
+      '<div class="nm">' + o.nm + '</div>' +
+      '<div class="ds">' + o.ds + '</div>' +
+      chips +
+    '</button>';
+  }).join('');
+  $('obBack').textContent = step === 1 ? '跳过' : '上一步';
+  $('obNext').textContent = step === 1 ? '下一步' : '开始使用';
+}
+
+/* =========================================================
+   事件绑定（统一代理）
+   ========================================================= */
+document.addEventListener('click', function(e){
+  /* 向导选项 */
+  const ob = e.target.closest('[data-ob]');
+  if(ob){
+    if(STATE.onboardStep === 1){
+      STATE.grade = ob.dataset.ob;
+      applyGrade(STATE.grade);
+    } else {
+      STATE.pickMode = ob.dataset.ob;
+      setMode(STATE.pickMode);
+    }
+    renderOnboard();
+    return;
+  }
+
+  const goEl = e.target.closest('[data-go]');
+  if(goEl){ go(goEl.dataset.go); return; }
+
+  const soon = e.target.closest('[data-soon]');
+  if(soon){ toast(soon.dataset.soon + ' 在规划中，这次不演示'); return; }
+
+  const cls = e.target.closest('[data-close]');
+  if(cls){ CLOSE[cls.dataset.close](); return; }
+
+  const trig = e.target.closest('[data-trig]');
+  if(trig){ trigger(trig.dataset.trig, trig.dataset.room || null); return; }
+
+  const showCard = e.target.closest('[data-showcard]');
+  if(showCard){ $('cardOverlay').classList.add('show'); return; }
+
+  const hideCard = e.target.closest('[data-hidecard]');
+  if(hideCard){ $('cardOverlay').classList.remove('show'); return; }
+
+  const teach = e.target.closest('[data-teach]');
+  if(teach){ toast('进入「教我认识我家的声音」：逐个播放 14 种声音，你确认或跳过'); return; }
+
+  const room = e.target.closest('[data-room]');
+  if(room && !e.target.closest('[data-trig]')){ hitRoom(room.dataset.room); return; }
+});
+
+/* 档位 */
+document.querySelectorAll('#grades button').forEach(function(b){
+  b.onclick = function(){ applyGrade(b.dataset.g); toast('已切换：' + GRADES[b.dataset.g].name); };
+});
+
+/* 字号 */
+document.querySelectorAll('#fsRow button').forEach(function(b){
+  b.onclick = function(){
+    STATE.fs = parseFloat(b.dataset.fs);
+    document.documentElement.style.setProperty('--fs', STATE.fs);
+    document.querySelectorAll('#fsRow button').forEach(function(x){ x.classList.toggle('on', x === b); });
+  };
+});
+
+/* 开关 */
+document.querySelectorAll('[data-sw]').forEach(function(tg){
+  tg.onclick = function(){
+    const k = tg.dataset.sw;
+    const on = !tg.classList.contains('on');
+    tg.classList.toggle('on', on);
+    if(k === 'subs'){ STATE.subs = on; $('subsBox').classList.toggle('off', !on);
+      $('subsLabel').textContent = on ? '实时字幕 · 客厅' : '未开启字幕 · 去无障碍中心打开'; }
+    if(k === 'name'){ STATE.nameDet = on; $('nameCard').style.display = on ? '' : 'none';
+      $('nameTag').textContent = on ? '已开启' : '已关闭'; }
+    if(k === 'picto'){ STATE.picto = on;
+      document.querySelectorAll('.tnode').forEach(function(n){ n.classList.toggle('picto', on); }); }
+    if(k === 'ha'){ STATE.ha = on; toast(on ? '助听器已连接（MFi / ASHA）' : '助听器已断开'); }
+  };
+});
+
+/* 模式 */
+document.querySelectorAll('#modes button').forEach(function(b){
+  b.onclick = function(){ setMode(b.dataset.mode); };
+});
+
+/* 筛选 */
+document.querySelectorAll('#filters button').forEach(function(b){
+  b.onclick = function(){
+    document.querySelectorAll('#filters button').forEach(function(x){ x.classList.remove('on'); });
+    b.classList.add('on');
+    renderTimeline(b.dataset.f);
+  };
+});
+
+/* 时间线点击展开 */
+document.addEventListener('click', function(e){
+  const card = e.target.closest('.tnode .tcard');
+  if(card){ card.parentNode.classList.toggle('open'); }
+});
+
+/* 触觉 */
+document.querySelectorAll('.tpl').forEach(function(t){
+  t.onclick = function(){
+    document.querySelectorAll('.tpl').forEach(function(x){ x.classList.remove('on'); });
+    t.classList.add('on');
+    const nm = t.dataset.b === 'l1' ? 'L1 单短震' : t.dataset.b === 'l3' ? 'L3 长震' : 'L2 双短震';
+    if($('bandName')) $('bandName').textContent = nm;
+  };
+});
+
+function previewBand(){
+  const on = document.querySelector('.tpl.on');
+  const lv = on ? on.dataset.b : 'l2';
+  const band = $('band');
+  if(!band) return;
+  band.classList.remove('l1vib','l2vib','l3vib');
+  void band.offsetWidth;
+  band.classList.add(lv === 'l1' ? 'l1vib' : lv === 'l3' ? 'l3vib' : 'l2vib');
+  vibratePattern(lv);
+  setTimeout(function(){ band.classList.remove('l1vib','l2vib','l3vib'); },
+    lv === 'l3' ? 2600 : lv === 'l2' ? 1600 : 900);
+}
+if($('previewBtn')) $('previewBtn').onclick = previewBand;
+
+/* 唤醒测试 */
+if($('wakeTest')) $('wakeTest').onclick = function(){
+  toast('震动 + 频闪 3 秒 —— 这就是它叫你起床的方式');
+  vibratePattern('l3');
+  const band = $('band');
+  if(band){
+    band.classList.remove('l1vib','l2vib','l3vib');
+    void band.offsetWidth;
+    band.classList.add('l3vib');
+    setTimeout(function(){ band.classList.remove('l3vib'); }, 3000);
+  }
+  const box = $('v-tac');
+  if(box){
+    box.style.transition = 'background .15s';
+    let n = 0;
+    const fl = setInterval(function(){
+      box.style.background = n % 2 ? 'rgba(255,255,255,.08)' : 'transparent';
+      if(++n > 5){ clearInterval(fl); box.style.background = 'transparent'; }
+    }, 380);
+  }
+};
+
+/* 设备条 */
+function renderDevs(){
+  const el = $('devList');
+  if(!el) return;
+  el.innerHTML = DEVS.map(function(d){
+    return '<div class="dev"><div class="n"><i class="' + (d.on ? '' : 'off') + '"></i>' + d.n + '</div>' +
+      '<div class="m"><span>' + d.b + '%</span><span>' + (d.on ? '在线' : '低电') + '</span></div></div>';
+  }).join('');
+}
+
+/* 自动巡演 */
+let AUTO = false;
+function autoDemo(){
+  if(AUTO) return;
+  AUTO = true;
+  const steps = [
+    function(){ go('home'); },
+    function(){ go('room'); trigger('l4','living'); },
+    function(){ CLOSE.name(); trigger('l1','entry'); },
+    function(){ CLOSE.l1(); trigger('l3','kitchen'); },
+    function(){ CLOSE.l3(); go('arch'); },
+    function(){ go('tac'); previewBand(); },
+    function(){ go('set'); },
+    function(){ go('home'); AUTO = false; }
+  ];
+  let i = 0;
+  (function next(){
+    if(i >= steps.length){ AUTO = false; return; }
+    steps[i++]();
+    setTimeout(next, 3000);
+  })();
+}
+if($('autoBtn')) $('autoBtn').onclick = autoDemo;
+
+/* 向导按钮 */
+if($('obNext')) $('obNext').onclick = function(){
+  if(STATE.onboardStep === 1){
+    if(!STATE.grade){ toast('先选一个'); return; }
+    STATE.onboardStep = 2;
+    renderOnboard();
+  } else {
+    if(!STATE.pickMode){ toast('先选一个'); return; }
+    $('onboard').classList.remove('show');
+    setMode(STATE.pickMode);
+    toast('设置完成。它现在按你的方式工作了。');
+  }
+};
+if($('obBack')) $('obBack').onclick = function(){
+  if(STATE.onboardStep === 2){
+    STATE.onboardStep = 1;
+    renderOnboard();
+  } else {
+    /* 第 1 步的「跳过」= 直接进入主界面，用中度默认值。
+       原来会跳到第 2 步，但按钮写着"跳过"，行为不一致，用户会以为坏了。 */
+    applyGrade(STATE.grade || 'moderate');
+    if(STATE.pickMode) setMode(STATE.pickMode);
+    $('onboard').classList.remove('show');
+    toast('已使用默认设置（中度）。随时可在「设置」里改。');
+  }
+};
+
+/* 字幕轮播 */
+function rotateSubs(){
+  if(!STATE.subs) return;
+  const line = SUBS_LINES[STATE.subIdx % SUBS_LINES.length];
+  if($('subsLine')){
+    const txt = line.text;
+    const kw = ['锅里','窗户','伞','敲门'];
+    let html = '<span class="who">' + line.who + '</span>';
+    let rest = txt;
+    let done = false;
+    kw.forEach(function(k){
+      if(!done && rest.indexOf(k) >= 0){
+        html += rest.replace(k, '<span class="kw">' + k + '</span>');
+        done = true;
+      }
+    });
+    if(!done) html += rest;
+    $('subsLine').innerHTML = html;
+  }
+  if($('subsPrev')) $('subsPrev').textContent = '刚才：「' + SUBS_LINES[(STATE.subIdx + 3) % SUBS_LINES.length].text + '」';
+  STATE.subIdx++;
+}
+setInterval(rotateSubs, 6000);
+
+/* 时钟 */
+function tick(){
+  const d = new Date();
+  const hh = String(d.getHours()).padStart(2,'0');
+  const mm = String(d.getMinutes()).padStart(2,'0');
+  if($('clock')) $('clock').textContent = hh + ':' + mm;
+  if($('homeTime')) $('homeTime').textContent = hh + ':' + mm;
+}
+
+/* 键盘 */
+document.addEventListener('keydown', function(e){
+  if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  const k = e.key;
+  if(k === '1') trigger('l1','entry');
+  if(k === '2') trigger('l2','bed');
+  if(k === '3') trigger('l3','kitchen');
+  if(k === '4') trigger('l4','living');
+  if(k === 'h' || k === 'H') go('home');
+  if(k === 'r' || k === 'R') go('room');
+  if(k === 'a' || k === 'A') go('arch');
+  if(k === 't' || k === 'T') go('tac');
+  if(k === 's' || k === 'S') go('set');
+  if(k === 'c' || k === 'C') $('cardOverlay').classList.add('show');
+  if(k === 'Escape'){ CLOSE.l1(); CLOSE.l2(); CLOSE.l3(); CLOSE.name(); $('cardOverlay').classList.remove('show'); }
+});
+
+/* =========================================================
+   启动
+   ========================================================= */
+buildWave($('wave1'), 26, '#FF6FB5');
+buildWave($('pipWave'), 17, '#FF6FB5');
+
+/* 关键修复②：原来每 900ms 改 26 个元素的高度 → 触发 26 次布局重排，
+   在低端设备上就是「点了没反应」。改成用 transform 缩放（走合成层，不重排），
+   并且降低频率、只改 8 个元素。 */
+setInterval(function(){
+  const w = $('wave1');
+  if(!w || !w.children || !w.children.length) return;
+  const n = Math.min(8, w.children.length);
+  for(let i=0;i<n;i++){
+    const el = w.children[Math.floor(Math.random() * w.children.length)];
+    if(el) el.style.transform = 'scaleY(' + (0.35 + Math.random() * 0.75).toFixed(2) + ')';
+  }
+}, 1400);
+
+renderDevs();
+renderTimeline('all');
+tick();
+setInterval(tick, 20000);
+applyGrade('moderate');
+setMode('day');
+init3D();
+showOnboard();
+</script>
+</body>
+</html>
